@@ -329,6 +329,26 @@ contract VaubanVaultTest is Test {
         assertEq(v.revision(), r + 1);
     }
 
+    /// The whole sheet can be rebuilt from logs alone: every listing and every limit is emitted.
+    function test_policyIsLogged() public {
+        bytes4 sel = MockRouter.buy.selector;
+        vm.expectEmit(true, true, false, true, address(v));
+        emit VaubanVault.Listed(address(router), sel, false);
+        vm.prank(owner);
+        v.setAllowed(address(router), _sels(sel), false);
+
+        vm.expectEmit(true, false, false, true, address(v));
+        emit VaubanVault.LimitsSet(address(usdg), true, 1, 2, 3, 0);
+        vm.prank(owner);
+        v.setLimits(address(usdg), _lim(1, 2, 3, 0));
+
+        // A no-op listing changes nothing, so it logs nothing.
+        vm.recordLogs();
+        vm.prank(owner);
+        v.setAllowed(address(router), _sels(sel), false);
+        assertEq(vm.getRecordedLogs().length, 1); // PolicyRevised only
+    }
+
     function test_ruleDryRun() public view {
         bytes memory buy = abi.encodeCall(MockRouter.buy, ());
         assertEq(v.rule(address(router), 0.04 ether, buy), 0);

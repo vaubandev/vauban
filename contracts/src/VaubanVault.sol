@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /// @title VaubanVault
 /// @notice Holds funds for one autonomous agent and rules on every call it makes.
-///         Order of ruling: keep (frozen?) -> curtain (allowlist) -> gate (hold?) -> ditch (caps) -> land.
+///         Order of ruling: keep (frozen?) -> curtain (allowlist) -> ditch (caps) -> gate (hold?) -> land.
 ///         The agent can only call `execute` and `release`. Everything else is owner-only.
 contract VaubanVault {
     // ---------------------------------------------------------------- types
@@ -63,6 +63,8 @@ contract VaubanVault {
     event Cancelled(bytes32 indexed id);
     event Frozen(bool frozen);
     event PolicyRevised(uint64 indexed revision);
+    event Listed(address indexed target, bytes4 indexed selector, bool ok);
+    event LimitsSet(address indexed asset, bool set, uint128 perTx, uint128 perHour, uint128 perDay, uint128 holdAbove);
     event AgentSet(address indexed agent);
     event OwnershipTransferStarted(address indexed from, address indexed to);
     event OwnershipTransferred(address indexed from, address indexed to);
@@ -183,12 +185,14 @@ contract VaubanVault {
             allowed[target][selectors[i]] = ok;
             if (ok) ++allowedCount[target];
             else --allowedCount[target];
+            emit Listed(target, selectors[i], ok);
         }
         _revise();
     }
 
     function setLimits(address asset, Limits calldata l) external onlyOwner {
         limits[asset] = l;
+        emit LimitsSet(asset, l.set, l.perTx, l.perHour, l.perDay, l.holdAbove);
         _revise();
     }
 
