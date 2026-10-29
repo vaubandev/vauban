@@ -24,6 +24,12 @@ node aeon/skills/vauban-vault/status.mjs 0xf9322f1546de5a121cdc09522e70af79e30e4
 
 Any other address whose code does not match the pinned hash is reported as not a Vauban vault.
 
+## Links
+
+- Site: [vauban.works](https://vauban.works)
+- X: [@vaubanworks](https://x.com/vaubanworks)
+- Source: [github.com/vaubandev/vauban](https://github.com/vaubandev/vauban)
+
 ## Verify
 
 ```bash

@@ -9,7 +9,7 @@ A fortification for autonomous agents. A vault the agent works inside, with four
 | Gate | Moves above a threshold are held for a delay; owner can cancel, agent or owner releases |
 | Keep | Owner freeze, two-step ownership, owner rescue |
 
-Target chain: Robinhood Chain (4663). Site: [vauban.works](https://vauban.works)
+Target chain: Robinhood Chain (4663). Site: [vauban.works](https://vauban.works) · X: [@vaubanworks](https://x.com/vaubanworks)
 
 > **Status:** not audited. One reference vault, holding nothing, is live on Robinhood Chain at `0xf9322f1546de5a121cdc09522e70af79e30e4097`. Do not use with real funds.
 
