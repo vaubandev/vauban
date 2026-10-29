@@ -3,7 +3,7 @@
 An [Aeon](https://www.aeon.fun) skill pack that reads a [Vauban](https://vauban.works) vault on Robinhood Chain (chain ID 4663).
 
 ```bash
-bin/install-skill-pack vaubanworks/vauban --path aeon
+bin/install-skill-pack vaubandev/vauban --path aeon
 ```
 
 | Skill | What it does | Secrets | Capabilities | Default schedule |
