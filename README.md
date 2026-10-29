@@ -11,7 +11,7 @@ A fortification for autonomous agents. A vault the agent works inside, with four
 
 Target chain: Robinhood Chain (4663). Site: [vauban.works](https://vauban.works)
 
-> **Status:** in test. Not audited. Not deployed to mainnet. Do not use with real funds.
+> **Status:** not audited. One reference vault, holding nothing, is live on Robinhood Chain at `0xf9322f1546de5a121cdc09522e70af79e30e4097`. Do not use with real funds.
 
 ## Layout
 

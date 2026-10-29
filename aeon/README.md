@@ -16,7 +16,13 @@ It reads the official RPC `rpc.mainnet.chain.robinhood.com` and checks the bytec
 
 ## Status
 
-The contract passes its own test suite and is **not audited** and **not deployed** to Robinhood Chain yet. The skill reports that honestly: until a vault exists at an address, it says the address is not a Vauban vault.
+The contract passes its own test suite and is **not audited**. One reference vault is live on Robinhood Chain at `0xf9322f1546de5a121cdc09522e70af79e30e4097`, owned by a Vauban test wallet and holding nothing. Try it:
+
+```bash
+node aeon/skills/vauban-vault/status.mjs 0xf9322f1546de5a121cdc09522e70af79e30e4097
+```
+
+Any other address whose code does not match the pinned hash is reported as not a Vauban vault.
 
 ## Verify
 

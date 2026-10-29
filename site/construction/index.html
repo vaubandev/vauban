@@ -50,7 +50,7 @@
     <h2 class="disp">Four phases. All drawn, none yet audited.</h2>
     <div class="status">
       <div><span class="phase">I</span><div><h3>The drawing</h3><p>Policy sheet format, the ruling model, the order of ruling, and these sheets.</p></div><span class="pill done">Standing</span></div>
-      <div><span class="phase">II</span><div><h3>Vault contract</h3><p>All four ramparts written and passing 31 tests, including fuzzing on the day cap and unlisted targets. Not yet audited and not deployed to Robinhood Chain — no real funds should touch it yet.</p></div><span class="pill wip">In test</span></div>
+      <div><span class="phase">II</span><div><h3>Vault contract</h3><p>All four ramparts written and passing 31 tests, including fuzzing on the day cap and unlisted targets. Not yet audited. One empty reference vault is live on Robinhood Chain at 0xf9322f1546de5a121cdc09522e70af79e30e4097 — no real funds should touch it yet.</p></div><span class="pill wip">In test</span></div>
       <div><span class="phase">III</span><div><h3>Agent SDK</h3><p>TypeScript on viem. Every move is simulated first, so a refusal comes back with the rampart that stopped it before any gas is spent. Passing end-to-end tests against a local chain.</p></div><span class="pill wip">In test</span></div>
       <div><span class="phase">IV</span><div><h3>Owner's table</h3><p>Reads any vault from the chain; owners can seal the keep and drop the gate from their own wallet. <a href="/table/" style="text-decoration:underline">Open the table</a>.</p></div><span class="pill wip">In test</span></div>
     </div>
@@ -62,7 +62,7 @@
     <p class="kicker">Questions</p>
     <h2 class="disp">Asked before the walls go up.</h2>
     <div class="faq">
-      <details><summary>Is Vauban live on mainnet?</summary><p>No. The vault contract is written and tested locally, but it is not audited and not deployed. It will be audited before mainnet. Do not route real funds through anything claiming to be Vauban before then.</p></details>
+      <details><summary>Is Vauban live on mainnet?</summary><p>Not for real funds. One empty reference vault is deployed so the code can be checked on-chain, but the contract is not audited. It will be audited before anyone should hold funds in it. Do not route real funds through anything claiming to be Vauban before then.</p></details>
       <details><summary>Does Vauban hold my funds?</summary><p>The design is that funds sit in a vault you own; Vauban rules on what may leave it. The owner key never goes to the agent and never goes to us.</p></details>
       <details><summary>Is this a scanner?</summary><p>No. Vauban does not try to guess whether a contract is good or bad. It enforces limits you set, whatever the agent is told to do. A scanner can be fooled by a new trick; a cap cannot.</p></details>
       <details><summary>Will it slow my agent down?</summary><p>Only at the gate, and only for moves you decided are large enough to wait. Everything under the threshold lands without delay and without a prompt.</p></details>
