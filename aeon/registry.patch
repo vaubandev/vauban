@@ -1,7 +1,7 @@
 From 49d7eae8cbcee3b27c1389661bc140785ada0def Mon Sep 17 00:00:00 2001
-From: vaubanworks <349802961+vaubanworks@users.noreply.github.com>
+From: vaubandev <237375346+vaubandev@users.noreply.github.com>
 Date: Thu, 29 Oct 2026 22:02:00 +0700
-Subject: [PATCH] List the Vauban pack
+Subject: [PATCH] docs(packs): list the Vauban Pack
 
 ---
  catalog/skill-packs.json      | 21 ++++++++++++++++++++-
