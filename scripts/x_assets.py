@@ -158,7 +158,7 @@ def tweet():
         text(d, (X + 70, y - 6), label, name, INK)
         text(d, (X + 70, y + 42), line, desc, MUTED)
     text(d, (X, 770), "ENFORCED ON-CHAIN  ·  vauban.works", mono, INK)
-    text(d, (X, 802), "In test. Not audited. Not on mainnet.", small, MUTED)
+    text(d, (X, 802), "Not audited. One empty reference vault live on chain 4663.", small, MUTED)
     d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=INK)
     done(img, "tweet-1.png")
 
