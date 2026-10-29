@@ -1,0 +1,60 @@
+From 49d7eae8cbcee3b27c1389661bc140785ada0def Mon Sep 17 00:00:00 2001
+From: vaubanworks <349802961+vaubanworks@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 22:02:00 +0700
+Subject: [PATCH] List the Vauban pack
+
+---
+ catalog/skill-packs.json      | 21 ++++++++++++++++++++-
+ docs/community-skill-packs.md |  1 +
+ 2 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/catalog/skill-packs.json b/catalog/skill-packs.json
+index a94ccb4..8c74baa 100644
+--- a/catalog/skill-packs.json
++++ b/catalog/skill-packs.json
+@@ -1,6 +1,6 @@
+ {
+   "version": "1.0",
+-  "updated": "2026-10-26",
++  "updated": "2026-10-29",
+   "description": "Machine-readable registry of community skill packs installable via bin/install-skill-pack. Mirrors the human-readable table in README.md.",
+   "packs": [
+     {
+@@ -256,6 +256,25 @@
+       "capabilities": [
+         "sends_notifications"
+       ]
++    },
++    {
++      "repo": "vaubanworks/vauban",
++      "path": "aeon",
++      "name": "Vauban Pack",
++      "description": "Read-only view of a Vauban vault on Robinhood Chain (4663): the sheet in force, remaining caps, what is held at the gate, and what changed since the last run. Never signs.",
++      "author": "vaubanworks",
++      "license": "MIT",
++      "homepage": "https://vauban.works",
++      "category": "crypto",
++      "trust_level": "community",
++      "skills": [
++        "vauban-vault"
++      ],
++      "secrets_required": [],
++      "capabilities": [
++        "read_only",
++        "sends_notifications"
++      ]
+     }
+   ]
+ }
+diff --git a/docs/community-skill-packs.md b/docs/community-skill-packs.md
+index 687eb72..39664df 100644
+--- a/docs/community-skill-packs.md
++++ b/docs/community-skill-packs.md
+@@ -288,3 +288,4 @@ Community skill packs live in their own repos and install as one bundle. The aut
+ | [Sentinel Pack](https://github.com/sentinelhood/robinhood-sentinel) | 8 | Robinhood Chain (4663) and Pons beyond the token transfers `onchain-monitor` reports: address diffs, Aeon v4 hook usage, an on-chain check of every hook registry address, lookalike launches, one-shot token checks, repeat deployers, graduations to a locked v4 pool and the busiest bonding curves. Keyless, read-only. |
+ | [Cohesivity](https://github.com/AragAgg/aeon-skill-pack-cohesivity) | 1 | Build a small web app and deploy it to a live URL on Cohesivity, a headless backend for AI agents. Free 72-hour tenant, no API keys or signups required to get started. |
+ | [Lazybrief](https://github.com/NurstarK/lazybrief) | 1 | Overnight do-it-later inbox: dump links, notes and todos all day; a local Gemma (via Ollama) sorts them into a five-line morning brief through `./notify`. No keys, nothing leaves the machine. Self-hosted runner or local run only. |
++| [Vauban Pack](https://github.com/vaubanworks/vauban/tree/main/aeon) (`--path aeon`) | 1 | Read-only view of a Vauban vault on Robinhood Chain: the sheet it enforces, caps left, moves held at the gate, and what changed since last run. Never signs. |
+-- 
+2.43.0
+
