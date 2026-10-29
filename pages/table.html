@@ -1,0 +1,72 @@
+<!-- route: /table/ -->
+<!-- title: Owner's table — Vauban -->
+<!-- desc: Read any Vauban vault on Robinhood Chain: keep state, caps, spend today and moves held at the gate. Owners can freeze and drop the gate from their own wallet. -->
+<!-- plate: SHEET VI · OWNER'S TABLE -->
+<!-- scripts: /table.js -->
+<section class="phead">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap phead-in">
+    <div>
+      <p class="crumbs"><a href="/">General plan</a> / Owner's table</p>
+      <p class="kicker">Sheet VI</p>
+      <h1>The owner's table.<br><span class="ink">Read the fort, seal it if you must.</span></h1>
+      <p class="lede">Paste a vault address to read its state straight from Robinhood Chain. If your wallet is the owner, you can freeze the keep and drop the gate on held moves. Nothing here can move funds out.</p>
+    </div>
+    <div class="sheet">Source <b>on-chain</b><br>Writes <b>your wallet</b><br>Keys held <b>none</b></div>
+  </div>
+</section>
+
+<section class="sec table-sec">
+  <div class="wrap">
+    <form class="vform" id="vForm">
+      <label for="vAddr">Vault address</label>
+      <div class="vrow">
+        <input id="vAddr" name="vault" placeholder="0x…" autocomplete="off" spellcheck="false" inputmode="latin" pattern="0x[0-9a-fA-F]{40}" required>
+        <button class="btn" type="submit">Read</button>
+        <button class="btn ghost-d" id="bConnect" type="button">Connect wallet</button>
+      </div>
+      <p class="tstatus" id="tStatus" role="status" aria-live="polite">No vault open. Vauban is not yet deployed to mainnet — use a vault you deployed yourself.</p>
+    </form>
+
+    <div id="tBody" hidden>
+      <p class="whoami" id="whoami"></p>
+      <div class="tgrid">
+        <article class="tcard">
+          <h3>Keep</h3>
+          <p class="big" id="sKeep" data-kind="">—</p>
+          <div id="ownerCtl" hidden>
+            <button class="btn" id="bFreeze" type="button">Seal the keep</button>
+            <button class="btn ghost-d" id="bUnfreeze" type="button" hidden>Unseal</button>
+          </div>
+        </article>
+        <article class="tcard">
+          <h3>Ditch · ETH</h3>
+          <p id="sCaps">—</p>
+          <div class="bar"><span id="capFill"></span></div>
+          <p class="small" id="sSpent">—</p>
+        </article>
+        <article class="tcard">
+          <h3>Gate</h3>
+          <p id="sHold">—</p>
+          <p class="small">delay <span id="sDelay">—</span></p>
+        </article>
+        <article class="tcard">
+          <h3>Vault</h3>
+          <p id="sBal">—</p>
+          <p class="small" id="sRev">—</p>
+        </article>
+      </div>
+
+      <dl class="ledger tledger">
+        <div><dt>Owner</dt><dd id="sOwner">—</dd></div>
+        <div><dt>Agent</dt><dd id="sAgent">—</dd></div>
+      </dl>
+
+      <div class="heldhead">
+        <h2 class="disp" style="margin:0">Held at the gate <span class="count" id="heldCount">0</span></h2>
+        <button class="btn ghost-d" id="bRefresh" type="button">Refresh</button>
+      </div>
+      <ul class="held" id="heldList"></ul>
+    </div>
+  </div>
+</section>

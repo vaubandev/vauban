@@ -1,0 +1,128 @@
+<!-- route: /works/ -->
+<!-- title: The works — Vauban -->
+<!-- desc: The four ramparts of Vauban in detail: ditch (spend caps), curtain (contract allowlist), gate (time-lock) and keep (kill switch). -->
+<!-- plate: SHEET II · THE WORKS -->
+<section class="phead">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap phead-in">
+    <div>
+      <p class="crumbs"><a href="/">General plan</a> / The works</p>
+      <p class="kicker">Sheet II</p>
+      <h1>Four ramparts,<br><span class="ink">in section.</span></h1>
+      <p class="lede">Each rampart answers one question about a transaction. A transaction lands only if every answer is yes. They are checked in order, outermost first, and the first refusal ends the approach.</p>
+    </div>
+    <div class="sheet">Scale <b>1 : tx</b><br>Ramparts <b>IV</b><br>Drawn <b>owner</b></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <article class="rampart" id="ditch">
+      <svg viewBox="0 0 260 200" aria-hidden="true">
+        <path d="M0 150 H70 L90 175 H170 L190 150 H260" fill="none" stroke="#14150f" stroke-width="2"/>
+        <path d="M90 175 H170" stroke="#ff4a1c" stroke-width="3"/>
+        <path d="M95 160 H165" stroke="#14150f" stroke-dasharray="4 4"/>
+        <text x="130" y="195" text-anchor="middle" font-family="monospace" font-size="10" fill="#5d5a4c">CAP · 1.00 ETH / DAY</text>
+        <path d="M20 60 h40 M40 40 v40" stroke="#14150f" stroke-width="1.4"/>
+        <text x="20" y="105" font-family="monospace" font-size="10" fill="#5d5a4c">perTx · perHour · perDay</text>
+      </svg>
+      <div>
+        <span class="rn">01</span>
+        <h2>The ditch — spend caps</h2>
+        <p>The outermost line. Every transfer of value is counted against ceilings per transaction, per hour and per day. When a ceiling is reached the ditch is full: nothing more crosses until the window rolls over. This is what stops a loop that repeats a bad instruction on every cron tick.</p>
+        <dl class="stops">
+          <div><dt>Stops</dt><dd>Runaway loops, drain-by-repetition, a single oversized send</dd></div>
+          <div><dt>Lets through</dt><dd>Normal activity under the ceiling, without asking anyone</dd></div>
+          <div><dt>Counted in</dt><dd>Native ETH and listed tokens, each with its own ceiling</dd></div>
+          <div><dt>Changed by</dt><dd>Owner only. The agent cannot raise its own cap</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="rampart" id="curtain">
+      <svg viewBox="0 0 260 200" aria-hidden="true">
+        <rect x="20" y="60" width="220" height="80" fill="none" stroke="#14150f" stroke-width="2"/>
+        <rect x="110" y="60" width="40" height="80" fill="#e9e3d2" stroke="#14150f" stroke-width="2"/>
+        <path d="M60 30 V60 M200 30 V60" stroke="#ff4a1c" stroke-width="2"/>
+        <path d="M54 22 l12 12 M66 22 l-12 12 M194 22 l12 12 M206 22 l-12 12" stroke="#ff4a1c" stroke-width="2"/>
+        <path d="M130 20 V60" stroke="#14150f" stroke-width="2" marker-end=""/>
+        <text x="130" y="165" text-anchor="middle" font-family="monospace" font-size="10" fill="#5d5a4c">ONE GATE · NAMED TARGETS</text>
+      </svg>
+      <div>
+        <span class="rn">02</span>
+        <h2>The curtain — contract allowlist</h2>
+        <p>A continuous wall with one gate. The agent may call only the contracts you named, and only the functions you named on them. Everything else meets the wall. Unlimited token approvals are refused outright, because an infinite approval is a hole in the curtain that outlives the transaction.</p>
+        <dl class="stops">
+          <div><dt>Stops</dt><dd>Unknown contracts, approve(MAX), calls to functions you did not list</dd></div>
+          <div><dt>Lets through</dt><dd>Listed contract + listed function, e.g. router buy/sell</dd></div>
+          <div><dt>Matched by</dt><dd>Address and 4-byte selector, not by name</dd></div>
+          <div><dt>Changed by</dt><dd>Owner only</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="rampart" id="gate">
+      <svg viewBox="0 0 260 200" aria-hidden="true">
+        <path d="M70 170 V60 Q130 10 190 60 V170" fill="none" stroke="#14150f" stroke-width="2"/>
+        <path d="M85 70 V150 M105 55 V150 M125 48 V150 M145 48 V150 M165 55 V150 M180 65 V150" stroke="#14150f" stroke-width="1.4"/>
+        <path d="M78 100 H182 M78 130 H182" stroke="#14150f" stroke-width="1.4"/>
+        <path d="M78 150 H182" stroke="#ff4a1c" stroke-width="3"/>
+        <text x="130" y="190" text-anchor="middle" font-family="monospace" font-size="10" fill="#5d5a4c">HOLD &gt; 0.50 ETH · 6h</text>
+      </svg>
+      <div>
+        <span class="rn">03</span>
+        <h2>The gate — time-lock</h2>
+        <p>Moves above a threshold are not refused — they are held in the gatehouse for a fixed delay. During that window the owner can drop the portcullis and cancel. If nobody does, it can be released once the delay has passed. Autonomy is kept; surprise is removed.</p>
+        <dl class="stops">
+          <div><dt>Holds</dt><dd>Anything over the threshold you set</dd></div>
+          <div><dt>Releases</dt><dd>By agent or owner once the delay expires</dd></div>
+          <div><dt>Cancelled by</dt><dd>Owner, at any time before release</dd></div>
+          <div><dt>Visible as</dt><dd>A queued ruling with its release time</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="rampart" id="keep">
+      <svg viewBox="0 0 260 200" aria-hidden="true">
+        <rect x="80" y="50" width="100" height="110" fill="none" stroke="#14150f" stroke-width="2"/>
+        <path d="M80 50 v-14 h16 v14 M112 50 v-14 h16 v14 M148 50 v-14 h16 v14" fill="none" stroke="#14150f" stroke-width="2"/>
+        <rect x="116" y="115" width="28" height="45" fill="#ff4a1c"/>
+        <text x="130" y="185" text-anchor="middle" font-family="monospace" font-size="10" fill="#5d5a4c">FREEZE · OWNER ONLY</text>
+      </svg>
+      <div>
+        <span class="rn">04</span>
+        <h2>The keep — kill switch</h2>
+        <p>The last place to retreat to. One owner-only command freezes every outgoing transaction at once — including anything waiting at the gate. The agent sits inside the walls and has no key to the keep; it cannot lift the freeze, and it cannot remove the owner.</p>
+        <dl class="stops">
+          <div><dt>Freezes</dt><dd>All outgoing value and all queued moves</dd></div>
+          <div><dt>Lifted by</dt><dd>Owner only</dd></div>
+          <div><dt>Agent can</dt><dd>Nothing — not pause, unpause, or reassign</dd></div>
+          <div><dt>Intended for</dt><dd>Compromised prompt, leaked key, bad skill update</dd></div>
+        </dl>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="sec dark">
+  <div class="wrap">
+    <p class="kicker">Rulings</p>
+    <h2 class="disp">How the four combine on real approaches.</h2>
+    <div class="table-wrap">
+      <table class="matrix">
+        <thead><tr><th>Approach</th><th>Ditch</th><th>Curtain</th><th>Gate</th><th>Keep</th><th>Ruling</th></tr></thead>
+        <tbody>
+          <tr><td>buy 0.04 ETH on listed router</td><td>under cap</td><td>listed</td><td>below threshold</td><td>open</td><td class="v-pass">PASSED</td></tr>
+          <tr><td>approve(MAX) to unknown address</td><td>—</td><td>refused</td><td>—</td><td>—</td><td class="v-block">TURNED BACK</td></tr>
+          <tr><td>same buy, 40th time this hour</td><td>cap reached</td><td>—</td><td>—</td><td>—</td><td class="v-block">TURNED BACK</td></tr>
+          <tr><td>send 0.80 ETH to treasury</td><td>under cap</td><td>listed</td><td>over 0.50</td><td>open</td><td class="v-hold">HELD 6h</td></tr>
+          <tr><td>any move after owner freeze</td><td>—</td><td>—</td><td>—</td><td>sealed</td><td class="v-block">TURNED BACK</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="next"><span>Next sheet</span><a href="/drawing/">The drawing</a></div>
+</section>

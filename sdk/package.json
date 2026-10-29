@@ -1,0 +1,22 @@
+{
+  "name": "@vauban/sdk",
+  "version": "0.1.0",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "abi": "python3 ../scripts/abi.py"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.57.12"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "private": true
+}

@@ -1,0 +1,89 @@
+<!-- route: / -->
+<!-- title: Vauban — the fort around autonomous agents -->
+<!-- desc: Four ramparts between an autonomous agent and its wallet: spend caps, contract allowlist, time-lock and a kill switch. Enforced at execution, not by asking a human. -->
+<!-- plate: PLATE I · GENERAL PLAN -->
+<!-- scripts: /fort.js -->
+<section class="hero">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap hero-in">
+    <div class="hero-copy">
+      <p class="kicker">A fortification for autonomous agents</p>
+      <h1>The fort you build<br>around an agent<br><span class="ink">before you hand it a key.</span></h1>
+      <p class="lede">Autonomous agents run unattended and sign their own transactions. Vauban is the earthwork between the agent and its wallet — four ramparts a transaction must cross before it reaches the chain. Drawn once. Held by you.</p>
+      <div class="cta">
+        <a class="btn" href="/works/">Walk the ramparts</a>
+        <a class="btn ghost" href="/drawing/">Read the drawing</a>
+      </div>
+      <div class="ca-bar" id="caBar" hidden>
+        <span class="ca-live"><span class="ca-dot"></span><span id="caTicker"></span></span>
+        <code class="ca-addr" id="caAddr"></code>
+        <button class="ca-copy" id="caCopy" type="button">Copy</button>
+        <a class="ca-link" id="caBuy" href="#" target="_blank" rel="noopener noreferrer" hidden>Chart</a>
+      </div>
+    </div>
+    <figure class="plate" aria-label="Plan of the fort: four ramparts guarding the keep">
+      <canvas id="fort" width="560" height="560"></canvas>
+      <figcaption>Fig. 1 — general plan. A transaction approaches from open ground and is tested at each rampart. Illustrative.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band" aria-label="Summary">
+  <div class="wrap band-in">
+    <div><b>IV</b><span>ramparts, every tx crosses all</span></div>
+    <div><b>0</b><span>approval prompts</span></div>
+    <div><b>I</b><span>kill switch, owner-held</span></div>
+    <div><b>∞</b><span>runs unattended</span></div>
+  </div>
+</section>
+
+<section class="sec" id="siege">
+  <div class="wrap">
+    <p class="kicker">The siege</p>
+    <h2 class="disp">An agent with a raw key holds no ground. It simply has the key.</h2>
+    <div class="three">
+      <article>
+        <span class="rn">i.</span>
+        <h3>It never sleeps</h3>
+        <p>Cron keeps the agent working through the night. A single bad instruction repeats on every tick until a human happens to look.</p>
+      </article>
+      <article>
+        <span class="rn">ii.</span>
+        <h3>A key is total</h3>
+        <p>Hand over a private key and the agent can do anything the key can — drain, grant infinite approval, bridge the balance out.</p>
+      </article>
+      <article>
+        <span class="rn">iii.</span>
+        <h3>Asking defeats it</h3>
+        <p>Signing every move by hand turns autonomy back into a chat window. The answer is standing walls, not a sentry you have to wake.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec dark">
+  <div class="wrap">
+    <p class="kicker">Four ramparts</p>
+    <h2 class="disp">A transaction crosses every one, or it never lands.</h2>
+    <ol class="ramparts">
+      <li><span class="rn">01</span><div><h3>The ditch — spend caps</h3><p>Per-transaction, per-hour and per-day ceilings. A runaway loop fills the ditch and goes no further.</p></div></li>
+      <li><span class="rn">02</span><div><h3>The curtain — contract allowlist</h3><p>Only named contracts and functions pass. Unknown targets and infinite approvals are turned back.</p></div></li>
+      <li><span class="rn">03</span><div><h3>The gate — time-lock</h3><p>Large moves wait in the gatehouse. You have a window to drop the portcullis.</p></div></li>
+      <li><span class="rn">04</span><div><h3>The keep — kill switch</h3><p>One owner-only command seals the works. The agent cannot open it from inside.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <p class="kicker">The sheets</p>
+    <h2 class="disp">Five sheets make up the full set of drawings.</h2>
+    <nav class="index" aria-label="Sheets">
+      <a href="/works/"><span class="rn">Sheet II</span><h3>The works</h3><p>Each rampart in detail: what it stops, what it lets through, and how they combine.</p><span class="go">Open sheet</span></a>
+      <a href="/drawing/"><span class="rn">Sheet III</span><h3>The drawing</h3><p>The order of works — one policy sheet, its fields, and the order rulings are made in.</p><span class="go">Open sheet</span></a>
+      <a href="/construction/"><span class="rn">Sheet IV</span><h3>Construction</h3><p>What is dug, what is drawn, and what is not yet started. No inflated claims.</p><span class="go">Open sheet</span></a>
+      <a href="/name/"><span class="rn">Sheet V</span><h3>The name</h3><p>Why a 17th-century military engineer is the right patron for agent security.</p><span class="go">Open sheet</span></a>
+      <a href="/table/"><span class="rn">Sheet VI</span><h3>Owner's table</h3><p>Read any vault from the chain. Owners can seal the keep and drop the gate from their own wallet.</p><span class="go">Open sheet</span></a>
+    </nav>
+  </div>
+</section>

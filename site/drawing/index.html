@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The drawing — Vauban</title>
+<meta name="description" content="One policy sheet, read by the chain: its fields, the order rulings are made in, and why the agent can never redraw it.">
+<meta name="theme-color" content="#14150f">
+<meta property="og:title" content="The drawing — Vauban">
+<meta property="og:description" content="One policy sheet, read by the chain: its fields, the order rulings are made in, and why the agent can never redraw it.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://vauban.works/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://vauban.works/og.png">
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="/" aria-label="Vauban — home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 3 L5 13 L16 29 L27 13 L27 3" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-miterlimit="10"/><path d="M10.5 3 L10.5 14.6 L16 22.6 L21.5 14.6 L21.5 3" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".6"/><rect x="14" y="3" width="4" height="4" fill="#ff4a1c"/></svg><span class="wordmark">VAUBAN</span></a>
+    <nav class="links" aria-label="Primary"><a href="/works/">The works</a><a href="/drawing/">The drawing</a><a href="/construction/">Construction</a><a href="/name/">The name</a><a href="/table/">Owner's table</a></nav>
+    <span class="plate-no">SHEET III · THE DRAWING</span>
+    <button class="menu" type="button" aria-expanded="false" aria-label="Menu">MENU</button>
+  </div>
+</header>
+<main id="main">
+<section class="phead">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap phead-in">
+    <div>
+      <p class="crumbs"><a href="/">General plan</a> / The drawing</p>
+      <p class="kicker">Sheet III</p>
+      <h1>One sheet.<br><span class="ink">Drawn by a human, read by the chain.</span></h1>
+      <p class="lede">Every limit lives on a single order of works. The owner draws it; the agent works inside it. Each revision is numbered on-chain, so the sheet in force can always be traced.</p>
+    </div>
+    <div class="sheet">Format <b>order-of-works</b><br>Revisions <b>numbered</b><br>Written by <b>owner</b></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">Example sheet</p>
+      <h2 class="disp">Readable at a glance. No hidden clauses.</h2>
+      <p class="muted">The sheet uses the same four words as the fort. If you can read the plan, you can read the policy. Values below are an example for a trading agent, not defaults.</p>
+      <ul class="ticks">
+        <li>Plain fields, one rampart per line</li>
+        <li>Targets matched by address and selector</li>
+        <li>Only the owner can revise it</li>
+      </ul>
+    </div>
+    <pre class="draft" aria-label="Example order of works"><code><span class="c">; order-of-works — vauban.policy</span>
+<span class="c">; rev 3 · owner-only</span>
+
+<span class="k">agent</span>    growth-01
+<span class="k">ditch</span>    perTx 0.10 ETH   perDay 1.00 ETH
+<span class="k">curtain</span>  allow Router[buy,sell]
+         allow USDG[transfer]
+         <span class="c">; approve(MAX) always refused</span>
+<span class="k">gate</span>     hold > 0.50 ETH   delay 6h
+<span class="k">keep</span>     owner 0xYourWallet…   freeze owner-only</code></pre>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <p class="kicker">Fields</p>
+    <h2 class="disp">Every field on the sheet.</h2>
+    <div class="table-wrap">
+      <table class="spec">
+        <thead><tr><th>Field</th><th>Rampart</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>agent</code></td><td>—</td><td>The signer this sheet governs. One sheet per agent.</td></tr>
+          <tr><td><code>ditch.perTx</code></td><td>Ditch</td><td>Largest value a single transaction may move.</td></tr>
+          <tr><td><code>ditch.perHour / perDay</code></td><td>Ditch</td><td>Ceilings per clock hour and UTC day. Reaching one fills the ditch until the next window opens.</td></tr>
+          <tr><td><code>curtain.allow</code></td><td>Curtain</td><td>Contract address plus the function selectors permitted on it.</td></tr>
+          <tr><td><code>approve(MAX)</code></td><td>Curtain</td><td>Unlimited approvals are refused by the contract itself, whatever the allow list says.</td></tr>
+          <tr><td><code>gate.hold</code></td><td>Gate</td><td>Threshold above which a move is queued instead of sent.</td></tr>
+          <tr><td><code>gate.delay</code></td><td>Gate</td><td>How long a held move waits before the agent or owner may release it.</td></tr>
+          <tr><td><code>keep.owner</code></td><td>Keep</td><td>The only address that may revise the sheet, cancel, or freeze.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="sec dark">
+  <div class="wrap">
+    <p class="kicker">Order of ruling</p>
+    <h2 class="disp">The same five steps, every transaction, every time.</h2>
+    <ol class="order">
+      <li><h3>Keep</h3><p>Is the fort sealed? If frozen, turned back immediately.</p></li>
+      <li><h3>Curtain</h3><p>Is the target and function on the sheet? Unlimited approvals never pass.</p></li>
+      <li><h3>Ditch</h3><p>Does the value fit under every ceiling?</p></li>
+      <li><h3>Gate</h3><p>Is it over the hold threshold? If so, queue with a release time.</p></li>
+      <li><h3>Land</h3><p>Sent, and logged on-chain. A refusal reverts with the rampart that stopped it.</p></li>
+    </ol>
+    <p class="muted" style="margin-top:28px;max-width:720px">The keep is checked first, even though it is the innermost work: a sealed fort turns everything back without spending effort on the other ramparts.</p>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="next"><span>Next sheet</span><a href="/construction/">Construction</a></div>
+</section>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand small" href="/"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 3 L5 13 L16 29 L27 13 L27 3" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-miterlimit="10"/><path d="M10.5 3 L10.5 14.6 L16 22.6 L21.5 14.6 L21.5 3" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".6"/><rect x="14" y="3" width="4" height="4" fill="#ff4a1c"/></svg>VAUBAN</a>
+        <p class="lead">A fortification for autonomous agents. Four ramparts between an agent and its wallet, drawn once and held by the owner.</p>
+      </div>
+      <div><h4>Sheets</h4><a href="/works/">The works</a><a href="/drawing/">The drawing</a><a href="/construction/">Construction</a><a href="/name/">The name</a></div>
+      <div><h4>Ramparts</h4><a href="/works/#ditch">Ditch</a><a href="/works/#curtain">Curtain</a><a href="/works/#gate">Gate</a><a href="/works/#keep">Keep</a></div>
+      <div><h4>Status</h4><a href="/construction/">What is built</a><a href="/construction/#faq">Questions</a><a href="/table/">Owner's table</a></div>
+    </div>
+    <div class="foot-in">
+      <p>An independent work. Not affiliated with Aeon or Robinhood.</p>
+      <p>Nothing on these sheets is financial advice.</p>
+    </div>
+  </div>
+</footer>
+<script src="/app.js" defer></script>
+</body>
+</html>

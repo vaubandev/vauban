@@ -1,0 +1,82 @@
+<!-- route: /drawing/ -->
+<!-- title: The drawing — Vauban -->
+<!-- desc: One policy sheet, read by the chain: its fields, the order rulings are made in, and why the agent can never redraw it. -->
+<!-- plate: SHEET III · THE DRAWING -->
+<section class="phead">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap phead-in">
+    <div>
+      <p class="crumbs"><a href="/">General plan</a> / The drawing</p>
+      <p class="kicker">Sheet III</p>
+      <h1>One sheet.<br><span class="ink">Drawn by a human, read by the chain.</span></h1>
+      <p class="lede">Every limit lives on a single order of works. The owner draws it; the agent works inside it. Each revision is numbered on-chain, so the sheet in force can always be traced.</p>
+    </div>
+    <div class="sheet">Format <b>order-of-works</b><br>Revisions <b>numbered</b><br>Written by <b>owner</b></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">Example sheet</p>
+      <h2 class="disp">Readable at a glance. No hidden clauses.</h2>
+      <p class="muted">The sheet uses the same four words as the fort. If you can read the plan, you can read the policy. Values below are an example for a trading agent, not defaults.</p>
+      <ul class="ticks">
+        <li>Plain fields, one rampart per line</li>
+        <li>Targets matched by address and selector</li>
+        <li>Only the owner can revise it</li>
+      </ul>
+    </div>
+    <pre class="draft" aria-label="Example order of works"><code><span class="c">; order-of-works — vauban.policy</span>
+<span class="c">; rev 3 · owner-only</span>
+
+<span class="k">agent</span>    growth-01
+<span class="k">ditch</span>    perTx 0.10 ETH   perDay 1.00 ETH
+<span class="k">curtain</span>  allow Router[buy,sell]
+         allow USDG[transfer]
+         <span class="c">; approve(MAX) always refused</span>
+<span class="k">gate</span>     hold > 0.50 ETH   delay 6h
+<span class="k">keep</span>     owner 0xYourWallet…   freeze owner-only</code></pre>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <p class="kicker">Fields</p>
+    <h2 class="disp">Every field on the sheet.</h2>
+    <div class="table-wrap">
+      <table class="spec">
+        <thead><tr><th>Field</th><th>Rampart</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>agent</code></td><td>—</td><td>The signer this sheet governs. One sheet per agent.</td></tr>
+          <tr><td><code>ditch.perTx</code></td><td>Ditch</td><td>Largest value a single transaction may move.</td></tr>
+          <tr><td><code>ditch.perHour / perDay</code></td><td>Ditch</td><td>Ceilings per clock hour and UTC day. Reaching one fills the ditch until the next window opens.</td></tr>
+          <tr><td><code>curtain.allow</code></td><td>Curtain</td><td>Contract address plus the function selectors permitted on it.</td></tr>
+          <tr><td><code>approve(MAX)</code></td><td>Curtain</td><td>Unlimited approvals are refused by the contract itself, whatever the allow list says.</td></tr>
+          <tr><td><code>gate.hold</code></td><td>Gate</td><td>Threshold above which a move is queued instead of sent.</td></tr>
+          <tr><td><code>gate.delay</code></td><td>Gate</td><td>How long a held move waits before the agent or owner may release it.</td></tr>
+          <tr><td><code>keep.owner</code></td><td>Keep</td><td>The only address that may revise the sheet, cancel, or freeze.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="sec dark">
+  <div class="wrap">
+    <p class="kicker">Order of ruling</p>
+    <h2 class="disp">The same five steps, every transaction, every time.</h2>
+    <ol class="order">
+      <li><h3>Keep</h3><p>Is the fort sealed? If frozen, turned back immediately.</p></li>
+      <li><h3>Curtain</h3><p>Is the target and function on the sheet? Unlimited approvals never pass.</p></li>
+      <li><h3>Ditch</h3><p>Does the value fit under every ceiling?</p></li>
+      <li><h3>Gate</h3><p>Is it over the hold threshold? If so, queue with a release time.</p></li>
+      <li><h3>Land</h3><p>Sent, and logged on-chain. A refusal reverts with the rampart that stopped it.</p></li>
+    </ol>
+    <p class="muted" style="margin-top:28px;max-width:720px">The keep is checked first, even though it is the innermost work: a sealed fort turns everything back without spending effort on the other ramparts.</p>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="next"><span>Next sheet</span><a href="/construction/">Construction</a></div>
+</section>
