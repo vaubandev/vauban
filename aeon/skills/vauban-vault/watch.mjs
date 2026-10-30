@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// node vauban_watch.mjs --watch 0xA,0xB --state memory/state/vauban-watch.json
+// node watch.mjs --watch 0xA,0xB --state memory/state/vauban-vault.json
 // Exit: 0 report, 2 VAUBAN_WATCH_RPC_DOWN, 3 VAUBAN_WATCH_BAD_WATCH, 4 VAUBAN_WATCH_NO_VAULT.
 // The first run only records the current block, so installing it never replays history.
 
@@ -31,8 +31,14 @@ export function classify(log) {
   if (t === TOPIC.frozen) return `${v} ${word(log.data, 0) === 1n ? "frozen" : "unfrozen"}`;
   if (t === TOPIC.listed) return `${v} ${word(log.data, 0) === 1n ? "listed" : "unlisted"} ${addrOf(log.topics[1])} 0x${log.topics[2].slice(2, 10)}`;
   if (t === TOPIC.limits) return `${v} limits ${word(log.data, 0) === 1n ? "set" : "cleared"} for ${addrOf(log.topics[1])}`;
-  if (t === TOPIC.revised) return `${v} revision ${word(log.data, 0)}`;
+  // PolicyRevised(uint64 indexed revision): the value is in topics[1], data is empty.
+  if (t === TOPIC.revised) return `${v} revision ${BigInt(log.topics[1])}`;
   return null;
+}
+
+function describe(log) {
+  try { return classify(log); }
+  catch { return `${(log.address ?? "").toLowerCase()} logged an event this skill could not decode (tx ${log.transactionHash ?? "unknown"})`; }
 }
 
 export function render(lines) {
@@ -44,13 +50,13 @@ export async function changesSince(url, vaults, fromBlock, toBlock) {
     "eth_getLogs",
     [{ address: vaults, fromBlock: hex(BigInt(fromBlock) + 1n), toBlock: hex(toBlock), topics: [WATCHED] }],
   ]]);
-  return logs.map(classify).filter(Boolean);
+  return logs.map(describe).filter(Boolean);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const at = args.indexOf("--state");
-  const statePath = at >= 0 ? args[at + 1] : "memory/state/vauban-watch.json";
+  const statePath = at >= 0 ? args[at + 1] : "memory/state/vauban-vault.json";
   const list = watchList(args);
   if (!list.length) fail(4, "VAUBAN_WATCH_NO_VAULT");
   if (list.some((a) => !isAddress(a))) fail(3, "VAUBAN_WATCH_BAD_WATCH");

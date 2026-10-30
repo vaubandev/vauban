@@ -92,6 +92,25 @@ test("the watch names each rampart event and stays quiet when nothing happened",
   assert.equal(classify({ topics: [TOPIC.born], data: "0x" }), null);
 });
 
+test("a policy revision is read from its indexed topic, not the empty data", () => {
+  const log = { address: VAULT, topics: [TOPIC.revised, "0x" + pad(7n)], data: "0x" };
+  assert.equal(classify(log), `${VAULT} revision 7`);
+});
+
+test("the watch decodes every event the contract emits with its real log shape", () => {
+  const id = "0x" + "ab".repeat(32);
+  const logs = [
+    { address: VAULT, topics: [TOPIC.held, id, topicAddr(ROUTER)], data: dataOf(8n, 0xa0n, 1_700_000_000n, 4n, 0n) },
+    { address: VAULT, topics: [TOPIC.passed, topicAddr(ROUTER), topicSel(BUY)], data: dataOf(8n, BigInt(id)) },
+    { address: VAULT, topics: [TOPIC.cancelled, id], data: "0x" },
+    { address: VAULT, topics: [TOPIC.frozen], data: dataOf(0n) },
+    listed(ROUTER, BUY, true),
+    limits(ROUTER, true, 10n, 20n, 30n, 5n),
+    { address: VAULT, topics: [TOPIC.revised, "0x" + pad(1n)], data: "0x" },
+  ];
+  for (const log of logs) assert.equal(typeof classify(log), "string");
+});
+
 test("words past the end of the data throw rather than read garbage", () => {
   assert.throws(() => word("0x" + "00".repeat(32), 3));
 });
