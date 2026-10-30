@@ -3,6 +3,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { homedir } from "node:os";
+import { existsSync } from "node:fs";
 import {
   createPublicClient, createWalletClient, http, parseEther, encodeFunctionData, parseAbi, toFunctionSelector,
   type Address, type Hex,
@@ -37,7 +38,9 @@ async function rpc(method: string, params: unknown[] = []) {
 }
 
 before(async () => {
-  anvil = spawn(`${homedir()}/.foundry/bin/anvil`, ["--port", String(PORT), "--silent"], { stdio: "ignore" });
+  // foundryup installs to ~/.foundry/bin; the CI action puts anvil on PATH instead
+  const local = `${homedir()}/.foundry/bin/anvil`;
+  anvil = spawn(existsSync(local) ? local : "anvil", ["--port", String(PORT), "--silent"], { stdio: "ignore" });
   for (let i = 0; i < 50; i++) {
     try { await pub.getBlockNumber(); break; } catch { await new Promise((r) => setTimeout(r, 100)); }
   }

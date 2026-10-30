@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sdk/package-lock.json
+
+      - name: contracts
+        working-directory: contracts
+        run: |
+          forge build --sizes
+          forge test
+
+      - name: aeon pack
+        run: node --test aeon/test/vault.test.mjs
+
+      - name: sdk
+        working-directory: sdk
+        run: |
+          npm ci
+          npx tsc
+          npm test
+
+      - name: generated files are current
+        run: |
+          python3 scripts/abi.py
+          git diff --exit-code -- sdk/src/abi.ts sdk/src/bytecode.ts
