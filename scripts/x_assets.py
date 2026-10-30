@@ -96,6 +96,13 @@ def avatar():
     done(img, "x-avatar.png")
 
 
+def token_logo():
+    img = canvas(1024, 1024, INK)
+    d = ImageDraw.Draw(img)
+    mark(d, 184, 194, 656, PAPER)
+    done(img, "token-logo.png")
+
+
 def banner():
     W, H = 1500, 500
     img = canvas(W, H, PAPER)
