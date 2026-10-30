@@ -165,6 +165,7 @@ h3{font:500 22px/1.2 var(--serif);letter-spacing:-.01em;margin-bottom:10px}
 .stops dt{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--fire);margin-bottom:6px}
 
 /* rulings matrix */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 .matrix{width:100%;border-collapse:collapse;font-size:13.5px}
 .matrix th,.matrix td{text-align:left;padding:14px 16px 14px 0;border-bottom:1px solid var(--rule-d);vertical-align:top}
 .matrix th{font-weight:500;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-d)}
@@ -234,7 +235,7 @@ h3{font:500 22px/1.2 var(--serif);letter-spacing:-.01em;margin-bottom:10px}
 .vrow input:focus{outline:2px solid var(--fire);outline-offset:1px}
 .btn.ghost-d{background:transparent;color:var(--ink);border-color:var(--ink)}
 .btn.ghost-d:hover{background:var(--ink);color:var(--paper)}
-.tstatus{margin-top:14px;font-size:13px;color:var(--muted);min-height:1.6em}
+.tstatus{margin-top:14px;font-size:13px;color:var(--muted);min-height:1.6em;overflow-wrap:anywhere}
 .tstatus[data-kind="err"]{color:var(--fire)}
 .tstatus[data-kind="ok"]{color:#5e6a2c}
 .whoami{margin:44px 0 18px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -298,6 +299,11 @@ h3{font:500 22px/1.2 var(--serif);letter-spacing:-.01em;margin-bottom:10px}
   .three,.road,.band-in{grid-template-columns:1fr}
   .ramparts li{grid-template-columns:64px 1fr;gap:14px}
   .ramparts .rn{font-size:30px}
+  .status>div{grid-template-columns:1fr;gap:10px}
+  .status .pill{justify-self:start}
+  .status p{overflow-wrap:anywhere}
+  .spec code{overflow-wrap:anywhere}
+  .matrix{min-width:560px}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
