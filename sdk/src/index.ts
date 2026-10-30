@@ -11,6 +11,7 @@ import {
   decodeEventLog,
   defineChain,
   encodeFunctionData,
+  formatEther,
   parseAbi,
   zeroHash,
 } from "viem";
@@ -64,7 +65,10 @@ const RAMPART: Record<string, Rampart> = {
 };
 
 function explain(code: string, a: readonly unknown[]): string {
+  const eth = a[0] === "0x0000000000000000000000000000000000000000";
   const asset = (x: unknown) => (x === "0x0000000000000000000000000000000000000000" ? "ETH" : String(x));
+  // Token decimals are not known here, so only ETH amounts are scaled.
+  const amt = (x: unknown) => (eth && typeof x === "bigint" ? formatEther(x) : String(x));
   switch (code) {
     case "KeepSealed": return "the fort is frozen by the owner";
     case "CurtainNotListed": return `${a[0]} selector ${a[1]} is not on the allowlist`;
@@ -72,9 +76,9 @@ function explain(code: string, a: readonly unknown[]): string {
     case "CurtainUnlimitedApproval": return "unlimited approvals are never allowed";
     case "CurtainUnknownSpender": return `spender ${a[0]} is not a listed contract`;
     case "DitchUncapped": return `no limits set for ${asset(a[0])}, so it cannot move`;
-    case "DitchPerTx": return `${a[1]} over per-tx cap ${a[2]} for ${asset(a[0])}`;
-    case "DitchPerHour": return `would reach ${a[1]}, over hourly cap ${a[2]} for ${asset(a[0])}`;
-    case "DitchPerDay": return `would reach ${a[1]}, over daily cap ${a[2]} for ${asset(a[0])}`;
+    case "DitchPerTx": return `${amt(a[1])} over per-tx cap ${amt(a[2])} for ${asset(a[0])}`;
+    case "DitchPerHour": return `would reach ${amt(a[1])}, over hourly cap ${amt(a[2])} for ${asset(a[0])}`;
+    case "DitchPerDay": return `would reach ${amt(a[1])}, over daily cap ${amt(a[2])} for ${asset(a[0])}`;
     case "GateUnknown": return `nothing held under ${a[0]}`;
     case "GateNotYet": return `held until ${new Date(Number(a[1]) * 1000).toISOString()}`;
     case "GateMismatch": return "release payload differs from what was held";

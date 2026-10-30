@@ -81,8 +81,13 @@ test("unknown target is refused at the curtain, no gas spent", async () => {
   assert.equal(await pub.getTransactionCount({ address: AGENT.address }), nonce);
 });
 
-test("over per-tx is refused at the ditch", async () => {
-  await assert.rejects(agent.execute(buy("0.2")), (e: unknown) => e instanceof Refused && e.code === "DitchPerTx");
+test("over per-tx is refused at the ditch, in ETH not wei", async () => {
+  await assert.rejects(agent.execute(buy("0.2")), (e: unknown) => {
+    assert.ok(e instanceof Refused);
+    assert.equal(e.code, "DitchPerTx");
+    assert.equal(e.reason, "0.2 over per-tx cap 0.1 for ETH");
+    return true;
+  });
 });
 
 test("large move is held, listed, then released after the delay", async () => {
