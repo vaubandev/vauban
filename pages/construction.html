@@ -21,7 +21,7 @@
     <h2 class="disp">Four phases. All drawn, none yet audited.</h2>
     <div class="status">
       <div><span class="phase">I</span><div><h3>The drawing</h3><p>Policy sheet format, the ruling model, the order of ruling, and these sheets.</p></div><span class="pill done">Standing</span></div>
-      <div><span class="phase">II</span><div><h3>Vault contract</h3><p>All four ramparts written and passing 31 tests, including fuzzing on the day cap and unlisted targets. Not yet audited. One empty reference vault is live on Robinhood Chain at 0xf9322f1546de5a121cdc09522e70af79e30e4097 — no real funds should touch it yet.</p></div><span class="pill wip">In test</span></div>
+      <div><span class="phase">II</span><div><h3>Vault contract</h3><p>All four ramparts written and passing 36 tests, including fuzzing on the day cap and unlisted targets and reentrancy through every entry point. CI runs them on every push. Not yet audited. One empty reference vault is live on Robinhood Chain at 0xf9322f1546de5a121cdc09522e70af79e30e4097 — no real funds should touch it yet.</p></div><span class="pill wip">In test</span></div>
       <div><span class="phase">III</span><div><h3>Agent SDK</h3><p>TypeScript on viem. Every move is simulated first, so a refusal comes back with the rampart that stopped it before any gas is spent. Passing end-to-end tests against a local chain.</p></div><span class="pill wip">In test</span></div>
       <div><span class="phase">IV</span><div><h3>Owner's table</h3><p>Reads any vault from the chain; owners can seal the keep and drop the gate from their own wallet. <a href="/table/" style="text-decoration:underline">Open the table</a>.</p></div><span class="pill wip">In test</span></div>
     </div>

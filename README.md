@@ -18,6 +18,7 @@ Target chain: Robinhood Chain (4663). Site: [vauban.works](https://vauban.works)
 ```
 contracts/   Foundry: VaubanVault.sol, tests, deploy script
 sdk/         TypeScript (viem): VaubanAgent, VaubanOwner, e2e tests, deploy script
+aeon/        Aeon skill pack: read-only vault reports (listed in aeonfun/aeon)
 pages/       Site sources
 site/        Built static site (Vercel root)
 scripts/     build.py (pages -> site), abi.py (forge -> sdk/src/abi.ts), mark_v.py, x_assets.py
@@ -30,15 +31,18 @@ scripts/     build.py (pages -> site), abi.py (forge -> sdk/src/abi.ts), mark_v.
 git submodule update --init
 cd contracts && forge test
 
-# sdk (needs anvil on PATH at ~/.foundry/bin)
+# sdk (needs anvil, from ~/.foundry/bin or PATH; drift tests need `forge build` first)
 cd sdk && npm ci && npm run typecheck && npm test
+
+# aeon pack (no network)
+node --test aeon/test/vault.test.mjs
 
 # site
 python3 scripts/build.py
 cd site && python3 -m http.server 8090
 ```
 
-After changing the contract: `python3 scripts/abi.py` to regenerate `sdk/src/abi.ts` and `bytecode.ts`.
+After changing the contract: `python3 scripts/abi.py` to regenerate `sdk/src/abi.ts` and `bytecode.ts`, then update `CODEHASH` in `aeon/skills/vauban-vault/vault.mjs`. CI fails until all three match the build.
 
 ## Known limits
 
