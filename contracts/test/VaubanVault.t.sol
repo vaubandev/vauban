@@ -306,8 +306,55 @@ contract VaubanVaultTest is Test {
         vm.prank(owner);
         v.setAllowed(address(r), _sels(Reenterer.poke.selector), true);
         vm.prank(agent);
-        vm.expectRevert(); // CallFailed(Reentrant)
+        vm.expectRevert(_reentrant());
         v.execute(address(r), 0, abi.encodeCall(Reenterer.poke, ()));
+    }
+
+    /// The lock, not the role check, is what stops it: the modifier runs before `msg.sender` is read.
+    function test_reentrancyBlockedOnRelease() public {
+        bytes32 id = _buy(0.08 ether);
+        bytes memory data = abi.encodeCall(MockRouter.buy, ());
+        Reenterer r = new Reenterer();
+        r.arm(address(v), abi.encodeCall(VaubanVault.release, (id, address(router), 0.08 ether, data)));
+        vm.prank(owner);
+        v.setAllowed(address(r), _sels(Reenterer.poke.selector), true);
+        vm.warp(block.timestamp + DELAY);
+        vm.prank(agent);
+        vm.expectRevert(_reentrant());
+        v.execute(address(r), 0, abi.encodeCall(Reenterer.poke, ()));
+        assertEq(router.buys(), 0);
+    }
+
+    function test_reentrancyBlockedFromOwnerExecute() public {
+        Reenterer r = new Reenterer();
+        r.arm(address(v), abi.encodeCall(VaubanVault.execute, (treasury, 0.01 ether, "")));
+        vm.prank(owner);
+        vm.expectRevert(_reentrant());
+        v.ownerExecute(address(r), 0, abi.encodeCall(Reenterer.poke, ()));
+    }
+
+    function test_onlyOwnerSendsFreely() public {
+        vm.prank(agent);
+        vm.expectRevert(VaubanVault.NotOwner.selector);
+        v.ownerExecute(agent, 1 ether, "");
+        vm.prank(stranger);
+        vm.expectRevert(VaubanVault.NotOwner.selector);
+        v.ownerExecute(stranger, 1 ether, "");
+    }
+
+    function test_transferOwnershipToZeroCancelsPending() public {
+        vm.startPrank(owner);
+        v.transferOwnership(stranger);
+        v.transferOwnership(address(0));
+        vm.stopPrank();
+        vm.prank(stranger);
+        vm.expectRevert(VaubanVault.NotOwner.selector);
+        v.acceptOwnership();
+        assertEq(v.owner(), owner);
+    }
+
+    function _reentrant() internal pure returns (bytes memory) {
+        return abi.encodeWithSelector(VaubanVault.CallFailed.selector, abi.encodeWithSelector(VaubanVault.Reentrant.selector));
     }
 
     function test_twoStepOwnership() public {
