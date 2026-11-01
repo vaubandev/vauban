@@ -170,6 +170,40 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def rulings():
+    W, H = 1600, 900
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    fort(d, 1250, 470, 250, PAPER, (95, 96, 80))
+    mono, bold, small = font(MONO, 22), font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 22), font(MONO, 17)
+    X0 = 96
+    text(d, (X0, 92), "PLATE II  ·  RULINGS", font(MONO, 18), OLIVE)
+    mark(d, X0, 136, 56, PAPER)
+    text(d, (X0 + 76, 142), "VAUBAN", font(SERIF, 56, 500), PAPER)
+    head = font(SERIF, 50, 400)
+    text(d, (X0, 250), "Every call crosses", head, PAPER)
+    text(d, (X0, 310), "four ramparts.", head, FIRE)
+    # Same five moves and outcomes as sdk/scripts/demo-capture.ts on a local chain.
+    rows = (
+        ("buy 0.04 ETH on a listed router", "PASSED", OLIVE),
+        ("send 1 ETH to an unknown address", "CURTAIN  refused", FIRE),
+        ("buy 0.2 ETH, cap is 0.1 per tx", "DITCH  refused", FIRE),
+        ("buy 0.08 ETH, holds above 0.05", "GATE  held 6h", FIRE),
+        ("any move after the owner freezes", "KEEP  refused", FIRE),
+    )
+    text(d, (X0, 418), "agent.execute(", small, (160, 156, 138))
+    text(d, (X0 + 560, 418), "ruling", small, (160, 156, 138))
+    for i, (ask, ruling, col) in enumerate(rows):
+        y = 470 + i * 64
+        d.line([X0 * SS, (y - 18) * SS, 880 * SS, (y - 18) * SS], fill=(48, 49, 40), width=SS)
+        text(d, (X0, y), ask, mono, PAPER)
+        text(d, (X0 + 560, y), ruling, bold, col)
+    text(d, (X0, 812), "Refusals are simulated first, so they cost no gas.   vauban.works", small, (160, 156, 138))
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "tweet-rulings.png")
+
+
 if __name__ == "__main__":
     avatar()
     banner()
