@@ -1,6 +1,6 @@
 // Turn the site's CA bar on or off. Refuses any address that is not a Pons v2 launch paired with USDG
-// whose symbol is VAUBAN, so a lookalike token can never be published by mistake.
-//   node --experimental-strip-types scripts/set-ca.ts 0xCA [--chart https://...] [--deployer 0x...] [--no-deploy]
+// whose symbol is VAUBAN and whose deployer is the wallet you name, so a lookalike token can never be published by mistake.
+//   node --experimental-strip-types scripts/set-ca.ts 0xCA --deployer 0xYOURWALLET [--chart https://...] [--no-deploy]
 //   node --experimental-strip-types scripts/set-ca.ts --unset [--no-deploy]
 import { createPublicClient, http, getAddress, isAddress, parseAbi, type Address } from "viem";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -12,6 +12,11 @@ const TOKEN = new URL("token.json", SITE);
 const FACTORY: Address = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
 const USDG: Address = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168";
 const TICKER = "VAUBAN";
+// Copycats seen on 4663 using our name, links and avatar. Name, symbol and pair all match, only the deployer differs.
+const KNOWN_FAKES = new Set([
+  "0x7103Cc7478b25B1656008e92761E9CC9005ba67d", // Pons v2, USDG, 2% tax, deployer 0x352F…56AD, 2026-10-31
+  "0xa2A7f016de3a75Cc8a1C57e7F4dce83db4a07777", // flap.sh, 2026-10-29
+].map((a) => a.toLowerCase()));
 
 const factoryAbi = parseAbi([
   "struct LaunchedToken { address token; address curve; address deployer; address creatorFeeRecipient; address pairToken; uint256 graduationThreshold; uint24 poolFee; int24 tickSpacing; uint16 creatorTaxBps; bool buybackEnabled; uint8 phase; uint256 sweptQuote; uint256 sweptTokens; uint256 sweptAt; bool exists; }",
@@ -41,6 +46,9 @@ if (has("unset")) {
 const raw = argv.find((a) => !a.startsWith("--") && a !== flag("chart") && a !== flag("deployer"));
 if (!raw || !isAddress(raw)) die("give the token address: set-ca.ts 0x…");
 const ca = getAddress(raw!);
+if (KNOWN_FAKES.has(ca.toLowerCase())) die(`${ca} is a known copycat, not the Vauban token`);
+const want = flag("deployer");
+if (!want || !isAddress(want)) die("--deployer 0x… is required: name, symbol and pair are copyable, the deployer is not");
 const chart = flag("chart") ?? "";
 if (chart && !/^https:\/\/[^\s"'<>]+$/.test(chart)) die("--chart must be a plain https:// URL");
 
@@ -54,8 +62,7 @@ if (!t.exists) die(`${ca} was not launched by the Pons v2 factory`);
 if (getAddress(t.pairToken) !== USDG) die(`pair is ${t.pairToken}, expected USDG ${USDG}`);
 const symbol = await pub.readContract({ address: ca, abi: erc20, functionName: "symbol" });
 if (symbol !== TICKER) die(`symbol is "${symbol}", expected "${TICKER}"`);
-const want = flag("deployer");
-if (want && (!isAddress(want) || getAddress(want) !== getAddress(t.deployer))) die(`deployer is ${t.deployer}, not ${want}`);
+if (getAddress(want!) !== getAddress(t.deployer)) die(`deployer is ${t.deployer}, not ${want}`);
 
 const name = await pub.readContract({ address: ca, abi: erc20, functionName: "name" });
 console.log(JSON.stringify({ ca, name, symbol, deployer: t.deployer, pair: "USDG", curve: t.curve, phase: t.phase, creatorTaxBps: t.creatorTaxBps }, null, 2));
