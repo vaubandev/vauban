@@ -170,6 +170,47 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def walls():
+    W, H = 1600, 900
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    S = lambda *p: [v * SS for v in p]
+    mono, bold = font(MONO, 18), font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 22)
+    head, body = font(SERIF, 46, 500), font(SERIF, 30, 400)
+    dim = (160, 156, 138)
+    text(d, (96, 84), "PLATE IV  ·  TRUST OR WALLS", mono, OLIVE)
+    d.line(S(800, 170, 800, 760), fill=(60, 61, 50), width=SS)
+
+    # Left: on trust, the key reaches everything.
+    text(d, (96, 190), "On trust", head, PAPER)
+    for box, label in (((96, 360, 300, 440), "AGENT"), ((470, 360, 740, 440), "ALL FUNDS")):
+        d.rectangle(S(*box), outline=PAPER, width=2 * SS)
+        text(d, ((box[0] + box[2]) / 2, 388), label, bold, PAPER, anchor="ma")
+    d.line(S(300, 400, 458, 400), fill=FIRE, width=3 * SS)
+    d.polygon(S(470, 400, 452, 390, 452, 410), fill=FIRE)
+    text(d, (96, 520), "Anything the key can sign,", body, PAPER)
+    text(d, (96, 562), "it can spend.", body, FIRE)
+
+    # Right: on walls, every call meets the fort first.
+    text(d, (860, 190), "On walls", head, PAPER)
+    fort(d, 1260, 430, 180, PAPER, (95, 96, 80))
+    x = 1260 - 180 * 1.16 - 18
+    d.polygon(S(x, 416, x + 14, 430, x, 444, x - 14, 430), fill=FIRE)
+    for k in range(1, 6):
+        r = 3
+        cx = x - k * 24
+        d.ellipse(S(cx - r, 430 - r, cx + r, 430 + r), fill=(110, 108, 94))
+    text(d, (860, 660), "Only what the sheet allows", body, PAPER)
+    text(d, (860, 702), "gets through.", body, FIRE)
+
+    mark(d, 96, 800, 40, PAPER)
+    text(d, (152, 806), "VAUBAN", font(SERIF, 34, 500), PAPER)
+    text(d, (W - 96, 812), "vauban.works", mono, dim, anchor="ra")
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "tweet-walls.png")
+
+
 def build_log():
     W, H = 1600, 900
     img = canvas(W, H, PAPER)
