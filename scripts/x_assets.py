@@ -170,6 +170,41 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def try_card():
+    W, H = 1600, 900
+    img = canvas(W, H, PAPER)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (222, 215, 196))
+    S = lambda *p: [v * SS for v in p]
+    mono, small = font(MONO, 22), font(MONO, 17)
+    bold = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 22)
+    field_bg = (241, 236, 222)
+    text(d, (96, 84), "VAUBAN.WORKS/TABLE  ·  RULE A CALL", small, MUTED)
+    mark(d, 96, 128, 52, INK)
+    text(d, (166, 134), "VAUBAN", font(SERIF, 52, 500), INK)
+    text(d, (96, 232), "Try it in the browser.", font(SERIF, 54, 400), INK)
+    text(d, (96, 296), "No wallet, nothing signed.", font(SERIF, 54, 400), FIRE)
+
+    # Same fields and verdict the live form returned for the reference vault on 4663.
+    d.rectangle(S(96, 400, 1504, 760), fill=(236, 230, 214), outline=INK, width=2 * SS)
+    lab = font(MONO, 15)
+    fields = ((128, 432, 900, "TARGET", "0x000000000000000000000000000000000000dEaD"),
+              (940, 432, 1472, "VALUE (ETH)", "1"),
+              (128, 532, 1472, "CALLDATA", "0x  (empty: a plain ETH send)"))
+    for x0, y, x1, label, val in fields:
+        text(d, (x0, y), label, lab, MUTED)
+        d.rectangle(S(x0, y + 26, x1, y + 76), fill=field_bg, outline=INK, width=SS)
+        text(d, (x0 + 16, y + 40), val, mono, INK if label != "CALLDATA" else MUTED)
+    d.rectangle(S(128, 638, 268, 688), fill=FIRE)
+    text(d, (198, 652), "RULE", bold, INK, anchor="ma")
+    text(d, (300, 652), "REFUSED at the CURTAIN", bold, FIRE)
+    text(d, (300, 690), "0x…dEaD selector 0x00000000 is not on the allowlist.", small, INK)
+
+    text(d, (96, 800), "Reference vault 0xf9322f15…30e4097 on Robinhood Chain. Not audited.", small, MUTED)
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=INK)
+    done(img, "tweet-try.png")
+
+
 def rule_card():
     W, H = 1600, 900
     img = canvas(W, H, INK)
