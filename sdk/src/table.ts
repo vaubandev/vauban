@@ -1,7 +1,7 @@
 // Owner's table: browser bundle. Reads a vault over RPC; writes only through the user's own injected wallet.
 import {
   type Address, type EIP1193Provider, type Hex,
-  createPublicClient, createWalletClient, custom, formatEther, getAddress, http, isAddress,
+  createPublicClient, createWalletClient, custom, formatEther, getAddress, http, isAddress, isHex, parseEther,
 } from "viem";
 import { type HeldMove, robinhoodChain, readState, listHeld, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
 
@@ -179,6 +179,40 @@ $("bConnect").addEventListener("click", connect);
 $("bFreeze").addEventListener("click", () => write("freeze", []));
 $("bUnfreeze").addEventListener("click", () => write("unfreeze", []));
 $("bRefresh").addEventListener("click", load);
+
+function verdict(text: string, kind: "pass" | "hold" | "refused" | "err") {
+  const el = $("rOut");
+  el.textContent = text;
+  el.dataset.kind = kind;
+}
+
+async function rule() {
+  if (!vault) return;
+  const to = $<HTMLInputElement>("rTo").value.trim();
+  const eth = $<HTMLInputElement>("rValue").value.trim() || "0";
+  const data = ($<HTMLInputElement>("rData").value.trim() || "0x") as Hex;
+  if (!isAddress(to)) return verdict("Target is not a valid address.", "err");
+  if (!isHex(data) || data.length % 2) return verdict("Calldata must be 0x followed by whole bytes.", "err");
+  let value: bigint;
+  try { value = parseEther(eth); } catch { return verdict("Value must be a number of ETH.", "err"); }
+  if (value < 0n) return verdict("Value cannot be negative.", "err");
+  verdict("Asking the vault…", "hold");
+  try {
+    const r = await pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "rule", args: [getAddress(to), value, data] });
+    if (r === 0) verdict("PASS — the vault would let this call land now.", "pass");
+    else verdict("HOLD — the vault would queue this at the gate. It lands after the delay, and the owner can cancel it.", "hold");
+  } catch (e) {
+    try { toRefused(e); } catch (r) {
+      if (r instanceof Refused) return verdict(`REFUSED at the ${r.rampart.toUpperCase()} — ${r.reason}.`, "refused");
+      return verdict((r as Error).message.split("\n")[0], "err");
+    }
+  }
+}
+
+$<HTMLFormElement>("rForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  rule();
+});
 
 const q = new URLSearchParams(location.search).get("vault");
 if (q) {

@@ -94,6 +94,18 @@
         <div><dt>Agent</dt><dd id="sAgent">—</dd></div>
       </dl>
 
+      <form class="vform rform" id="rForm">
+        <h2 class="disp" style="margin:0 0 6px">Rule a call</h2>
+        <p class="small rnote">Ask this vault how it would rule on one call from its agent, before anything is signed. One read-only call; no wallet needed.</p>
+        <div class="rgrid">
+          <label>Target<input id="rTo" placeholder="0x…" autocomplete="off" spellcheck="false" required></label>
+          <label>Value (ETH)<input id="rValue" placeholder="0" inputmode="decimal" autocomplete="off"></label>
+          <label class="wide">Calldata<input id="rData" placeholder="0x (empty for a plain ETH send)" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="vrow"><button class="btn" type="submit">Rule</button></div>
+        <p class="rverdict" id="rOut" role="status" aria-live="polite"></p>
+      </form>
+
       <div class="heldhead">
         <h2 class="disp" style="margin:0">Held at the gate <span class="count" id="heldCount">0</span></h2>
         <button class="btn ghost-d" id="bRefresh" type="button">Refresh</button>
