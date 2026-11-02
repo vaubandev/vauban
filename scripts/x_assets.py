@@ -170,6 +170,21 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def dex_header():
+    # DexScreener crops nothing but shows it small: keep text large and centred-left.
+    W, H = 1500, 500
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    fort(d, 1180, 250, 200, PAPER, (95, 96, 80))
+    mark(d, 110, 150, 96, PAPER)
+    text(d, (230, 160), "VAUBAN", font(SERIF, 104, 500), PAPER)
+    text(d, (112, 310), "A vault for autonomous agents on Robinhood Chain", font(SERIF, 34, 400), PAPER)
+    text(d, (112, 372), "DITCH  ·  CURTAIN  ·  GATE  ·  KEEP", font(MONO, 22), FIRE)
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "dex-header.png")
+
+
 def rulings():
     W, H = 1600, 900
     img = canvas(W, H, INK)
