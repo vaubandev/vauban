@@ -170,6 +170,38 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def build_log():
+    W, H = 1600, 900
+    img = canvas(W, H, PAPER)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (222, 215, 196))
+    fort(d, 1260, 450, 260, INK, (150, 146, 128))
+    mono, small = font(MONO, 18), font(MONO, 16)
+    X0 = 96
+    text(d, (X0, 92), "PLATE III  ·  BUILD LOG", mono, MUTED)
+    mark(d, X0, 132, 56, INK)
+    text(d, (X0 + 76, 138), "VAUBAN", font(SERIF, 56, 500), INK)
+    text(d, (X0, 244), "What is standing,", font(SERIF, 50, 400), INK)
+    text(d, (X0, 304), "not what is promised.", font(SERIF, 50, 400), FIRE)
+    # Every figure here is checked against the repo, CI or chain before rendering.
+    rows = (
+        ("36", "contract tests, fuzzing and reentrancy included"),
+        ("2", "pull requests merged into Aeon"),
+        ("1", "reference vault live on Robinhood Chain"),
+        ("0", "keys asked for by the Aeon skill"),
+        ("CI", "runs every test on every push"),
+    )
+    num, line = font(SERIF, 44, 500), font(SERIF, 28, 400)
+    for i, (n, what) in enumerate(rows):
+        y = 420 + i * 72
+        d.line([X0 * SS, (y - 16) * SS, 900 * SS, (y - 16) * SS], fill=(196, 189, 168), width=SS)
+        text(d, (X0, y - 6), n, num, FIRE)
+        text(d, (X0 + 110, y + 4), what, line, INK)
+    text(d, (X0, 806), "Not audited yet.   vauban.works   ·   github.com/vaubandev/vauban", small, MUTED)
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=INK)
+    done(img, "tweet-buildlog.png")
+
+
 def dex_header():
     # DexScreener crops nothing but shows it small: keep text large and centred-left.
     W, H = 1500, 500
