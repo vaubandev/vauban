@@ -1,5 +1,6 @@
-"""Demo film, 1920x1080 30fps h264. Scene results come from a real anvil run (sdk/scripts/demo-capture.ts).
-Run: python3 scripts/demo_video.py /root/vauban-demo-run.json /root/vauban-demo.mp4"""
+"""Demo film, 1920x1080 30fps h264. Every result on screen is captured, not typed:
+rampart scenes from sdk/scripts/demo-capture.ts on anvil, the Aeon scene from scripts/aeon_capture.sh.
+Run: python3 scripts/demo_video.py <demo-run.json> <aeon-run.json> <out.mp4> [--stills]"""
 import json
 import subprocess
 import sys
@@ -18,8 +19,12 @@ X.SS = 1  # render at 1:1, video does its own antialiasing via supersample below
 SS = 2
 
 RUN = json.loads(Path(sys.argv[1]).read_text())
-OUT = sys.argv[2]
+AEON = json.loads(Path(sys.argv[2]).read_text())
+OUT = sys.argv[3]
 STEP = {s["scene"]: s for s in RUN["steps"]}
+# Both PRs merged into aeonfun/aeon; numbers and dates checked against the GitHub API.
+MERGED = [("#1292", "29 Oct", "Lists the Vauban skill pack in the Aeon registry"),
+          ("#1301", "1 Nov", "Fixes Aeon's pack validator for packs in a subfolder")]
 
 
 def font(path, px, w=None):
@@ -135,7 +140,7 @@ def caption(f, kicker, title, a, y=860):
 
 def chrome(f, idx, t_scene):
     f.text((120, 70), "VAUBAN", _font(MONO_B, 20), DIM)
-    f.text((W - 120, 70), f"{idx:02d} / 08", _font(MONO, 20), DIM, anchor="ra")  # scenes 02-08 carry chrome
+    f.text((W - 120, 70), f"{idx:02d} / 09", _font(MONO, 20), DIM, anchor="ra")  # scenes 02-09 carry chrome
     f.rect([0, H - 6, W * t_scene, H], fill=FIRE)
 
 
@@ -239,19 +244,37 @@ def s_aeon(f, t, s):
     chrome(f, 8, t)
     caption(f, "STEP 3  ·  WATCH IT FROM AEON", "Listed in the Aeon skill packs.", ease(s / 0.6), y=150)
     f.rect([120, 330, 1800, 830], fill=(26, 27, 21), outline=(48, 49, 40))
+    st = {ln.split(" ")[1]: ln for ln in AEON["status"] if ln.startswith("- ")}
+    v = AEON["vault"]
     lines = [
         ("$ bin/install-skill-pack vaubandev/vauban --path aeon", PAPER, MONO),
-        ("  ✓ security scan passed: vauban-vault", OLIVE, MONO),
+        ("  " + next(l.strip() for l in AEON["install"] if "security scan" in l), OLIVE, MONO),
         ("", PAPER, MONO),
-        ("$ node skills/vauban-vault/status.mjs 0xf932…4097", PAPER, MONO),
-        ("# Vauban vault 0xf9322f1546de5a121cdc09522e70af79e30e4097", PAPER, MONO),
-        ("- Frozen: no      - Gate delay 21600s      - Revision 0", DIM, MONO),
+        (f"$ node skills/vauban-vault/status.mjs {v[:6]}…{v[-4:]}", PAPER, MONO),
+        (next(l for l in AEON["status"] if l.startswith("# ")), PAPER, MONO),
+        (next(l for l in AEON["status"] if l.startswith("Block ")), DIM, MONO),
+        ("      ".join(st[k] for k in ("Frozen:", "Gate", "Revision")), DIM, MONO),
         ("Keyless. Read-only. Never signs.", FIRE, MONO_B),
     ]
     for i, (ln, col, fnt) in enumerate(lines):
-        k = ease((s - 0.6 - i * 0.45) / 0.35)
+        k = ease((s - 0.6 - i * 0.4) / 0.35)
         shown = ln[: int(len(ln) * k)]
-        f.text((160, 380 + i * 60), shown, _font(fnt, 30), col)
+        f.text((160, 375 + i * 55), shown, _font(fnt, 29), col)
+    f.text((120, 880), f"Captured from a fresh Aeon main ({AEON['aeonMain']}) reading the live vault on chain 4663.", _font(MONO, 20), DIM, alpha=ease((s - 3.8) / 0.5))
+
+
+def s_merged(f, t, s):
+    f.grid(drift=450 + s * 8)
+    chrome(f, 9, t)
+    caption(f, "MERGED INTO AEONFUN/AEON", "Two pull requests, both on main.", ease(s / 0.6), y=150)
+    for i, (num, date, what) in enumerate(MERGED):
+        a = ease((s - 0.7 - i * 0.6) / 0.5)
+        y = 400 + i * 190
+        f.rect([120, y - 30, 1800, y - 30 + 3], fill=mix(INK, FIRE, a))
+        f.text((120, y), num, _font(SERIF, 72, 500), PAPER, alpha=a)
+        f.text((420, y + 6), "MERGED  ·  " + date.upper(), _font(MONO_B, 26), OLIVE, alpha=a)
+        f.text((420, y + 52), what, _font(SERIF, 36, 400), PAPER, alpha=a)
+    f.text((120, 880), "github.com/aeonfun/aeon/pull/1292   ·   github.com/aeonfun/aeon/pull/1301", _font(MONO, 24), DIM, alpha=ease((s - 2.2) / 0.5))
 
 
 def s_end(f, t, s):
@@ -275,7 +298,8 @@ SCENES = [
     (4.6, run_scene("ditch", "Over the cap: refused at the ditch.", "STEP 2  ·  THE AGENT ACTS  ·  3 / 5", 5, STEP["ditch"]["ask"])),
     (4.6, run_scene("gate", "A big move waits at the gate.", "STEP 2  ·  THE AGENT ACTS  ·  4 / 5", 6, STEP["gate"]["ask"])),
     (4.6, run_scene("keep", "Frozen: the keep stops everything.", "STEP 2  ·  THE AGENT ACTS  ·  5 / 5", 7, STEP["keep"]["ask"])),
-    (5.4, s_aeon),
+    (6.0, s_aeon),
+    (4.6, s_merged),
     (4.8, s_end),
 ]
 FADE = 0.35
@@ -312,7 +336,7 @@ def render():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 3 and sys.argv[3] == "--stills":
+    if len(sys.argv) > 4 and sys.argv[4] == "--stills":
         for k, (dur, fn) in enumerate(SCENES):
             f = F()
             fn(f, 0.85, dur * 0.85)

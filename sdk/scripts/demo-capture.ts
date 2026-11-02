@@ -31,7 +31,9 @@ const steps: { scene: string; ask: string; result: string; rampart?: string }[] 
 async function attempt(scene: string, ask: string, run: () => Promise<unknown>) {
   try {
     const r = (await run()) as { kind?: string; eta?: Date } | undefined;
-    const result = r?.kind === "held" ? `HELD until ${r.eta!.toISOString().slice(11, 16)} UTC` : "PASSED";
+    // Report the wait as a duration from chain time; the local chain's wall clock means nothing to a viewer.
+    const now = Number((await pub.getBlock()).timestamp);
+    const result = r?.kind === "held" ? `HELD at the gate for ${Math.round((r.eta!.getTime() / 1000 - now) / 3600)} h` : "PASSED";
     steps.push({ scene, ask, result, rampart: r?.kind === "held" ? "gate" : undefined });
   } catch (e) {
     if (!(e instanceof Refused)) throw e;
