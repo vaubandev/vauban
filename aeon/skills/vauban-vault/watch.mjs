@@ -12,10 +12,7 @@ const WATCHED = [TOPIC.held, TOPIC.passed, TOPIC.cancelled, TOPIC.frozen, TOPIC.
 function watchList(argv) {
   const i = argv.indexOf("--watch");
   const raw = i >= 0 ? argv[i + 1] ?? "" : "";
-  if (raw.trim()) return raw.split(",").map((s) => s.trim()).filter(Boolean);
-  try {
-    return [...readFileSync("memory/state/vauban-watch.yml", "utf8").matchAll(/0x[0-9a-fA-F]{40}/g)].map((m) => m[0]);
-  } catch { return []; }
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
 /** One vault log as a single readable line. Null for events this skill does not report. */

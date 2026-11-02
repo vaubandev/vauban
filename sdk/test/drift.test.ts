@@ -60,6 +60,15 @@ test("Aeon function selectors match the ABI", () => {
   }
 });
 
+test("SKILL.md names every RPC method, URL and file path the helpers touch", () => {
+  const dir = new URL("../../aeon/skills/vauban-vault/", import.meta.url);
+  const code = ["vault.mjs", "status.mjs", "watch.mjs", "rule.mjs"].map((f) => readFileSync(new URL(f, dir), "utf8")).join("\n");
+  const doc = readFileSync(new URL("SKILL.md", dir), "utf8");
+  for (const m of new Set(code.match(/eth_[A-Za-z]+/g))) assert.ok(doc.includes("`" + m + "`"), `${m} is called but not in the network note`);
+  for (const u of new Set(code.match(/https?:\/\/[^"'`\s)]+/g))) assert.ok(doc.includes(u.replace(/^https?:\/\//, "")), `${u} is contacted but not documented`);
+  for (const p of new Set(code.match(/memory\/[\w./-]+/g))) assert.ok(doc.includes(p), `${p} is touched but not documented`);
+});
+
 test("rule.mjs uses the real rule() selector and names every error by its real selector", async () => {
   const src = readFileSync(new URL("../../aeon/skills/vauban-vault/rule.mjs", import.meta.url), "utf8");
   const ruleFn = fns.find((f) => f.name === "rule")!;

@@ -29,7 +29,7 @@ Aeon's on-chain skills read public chains and report what happened. None of them
 
 Public, unauthenticated reads only. `./secretcurl` is not needed because no secret is involved.
 
-- `https://rpc.mainnet.chain.robinhood.com` - the official RPC, called only with `eth_chainId`, `eth_blockNumber`, `eth_getCode`, `eth_call` and `eth_getLogs`. A ruling is one `eth_call` to the vault's own `rule()` view; nothing is signed or broadcast.
+- `https://rpc.mainnet.chain.robinhood.com` - the official RPC, called only with `eth_chainId`, `eth_blockNumber`, `eth_getBlockByNumber` (for the block time the hour and day caps are counted against), `eth_getCode`, `eth_call` and `eth_getLogs`. A ruling is one `eth_call` to the vault's own `rule()` view; nothing is signed or broadcast.
 - The address must be the Vauban vault: its runtime code is hashed and compared with the build hash pinned in `skills/vauban-vault/vault.mjs`. Anything else is reported as not a Vauban vault and nothing more is read from it.
 - Log reads walk back from the head in 10,000,000-block windows, the widest range this RPC allows, and stop at the `OwnershipTransferred` event the constructor emits.
 
