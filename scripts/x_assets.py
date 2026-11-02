@@ -170,6 +170,47 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def rule_card():
+    W, H = 1600, 900
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    S = lambda *p: [v * SS for v in p]
+    mono, small = font(MONO, 21), font(MONO, 18)
+    bold = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 30)
+    dim = (160, 156, 138)
+    text(d, (96, 84), "PLATE V  ·  RULE BEFORE YOU SIGN", small, OLIVE)
+    mark(d, 96, 128, 52, PAPER)
+    text(d, (166, 134), "VAUBAN", font(SERIF, 52, 500), PAPER)
+    text(d, (96, 232), "Ask the vault", font(SERIF, 54, 400), PAPER)
+    text(d, (96, 296), "before you sign.", font(SERIF, 54, 400), FIRE)
+
+    # Command and verdict as the live reference vault on 4663 returned them.
+    d.rectangle(S(96, 400, 1010, 720), fill=(26, 27, 21), outline=(48, 49, 40), width=SS)
+    term = (
+        ("$ node rule.mjs 0xf9322f15…30e4097 \\", PAPER, mono),
+        ("    --to 0x0000…dEaD \\", PAPER, mono),
+        ("    --value 1000000000000000000", PAPER, mono),
+        ("", PAPER, mono),
+        ("REFUSED at the CURTAIN", FIRE, font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 24)),
+        ("0x0000…dead selector 0x00000000 is not on the allowlist", dim, mono),
+    )
+    for i, (ln, col, f) in enumerate(term):
+        text(d, (128, 432 + i * 44), ln, f, col)
+
+    verdicts = (("PASS", "lands now", OLIVE), ("HOLD", "waits at the gate", PAPER), ("REFUSED", "names the rampart", FIRE))
+    for i, (label, what, col) in enumerate(verdicts):
+        y = 412 + i * 104
+        d.line(S(1090, y - 14, 1504, y - 14), fill=(60, 61, 50), width=SS)
+        text(d, (1090, y), label, bold, col)
+        text(d, (1090, y + 44), what, font(SERIF, 28, 400), PAPER)
+
+    text(d, (96, 800), "One read-only eth_call. Nothing signed, nothing sent, no key.", small, dim)
+    text(d, (W - 96, 800), "vauban.works", small, dim, anchor="ra")
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "tweet-rule.png")
+
+
 def walls():
     W, H = 1600, 900
     img = canvas(W, H, INK)
