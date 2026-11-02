@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { fold, amount, decodeString, isAddress, TOPIC, word } from "../skills/vauban-vault/vault.mjs";
 import { render } from "../skills/vauban-vault/status.mjs";
 import { classify, render as renderWatch } from "../skills/vauban-vault/watch.mjs";
+import { decodeRefusal, render as renderRule } from "../skills/vauban-vault/rule.mjs";
 
 const VAULT = "0x1111111111111111111111111111111111111111";
 const ROUTER = "0x2222222222222222222222222222222222222222";
@@ -109,6 +110,26 @@ test("the watch decodes every event the contract emits with its real log shape",
     { address: VAULT, topics: [TOPIC.revised, "0x" + pad(1n)], data: "0x" },
   ];
   for (const log of logs) assert.equal(typeof classify(log), "string");
+});
+
+test("a refusal names its rampart, with ETH caps in ETH", () => {
+  const eth = "0x" + "0".repeat(40);
+  const perTx = decodeRefusal("0x296fc248" + pad(BigInt(eth)) + pad(2n * 10n ** 17n) + pad(10n ** 17n));
+  assert.deepEqual([perTx.rampart, perTx.code, perTx.reason], ["ditch", "DitchPerTx", "0.2 ETH is over the per-tx cap of 0.1 ETH"]);
+  const curtain = decodeRefusal("0x727969cf" + pad(BigInt(ROUTER)) + BUY.slice(2).padEnd(64, "0"));
+  assert.deepEqual([curtain.rampart, curtain.args], ["curtain", [ROUTER, BUY]]);
+  assert.equal(decodeRefusal("0x528ac5eb").rampart, "keep");
+  assert.equal(decodeRefusal("0xdeadbeef").code, "0xdeadbeef");
+});
+
+test("the ruling report says pass, hold or refused, and never guesses on a non-vault", () => {
+  const base = { vault: VAULT, chainId: 4663, block: "100", to: ROUTER, value: "0", selector: BUY, isVauban: true };
+  assert.match(renderRule({ ...base, ruling: "pass" }), /\*\*PASS\*\*/);
+  assert.match(renderRule({ ...base, ruling: "hold" }), /\*\*HOLD\*\*.*owner can cancel/);
+  assert.match(renderRule({ ...base, ruling: "refused", rampart: "keep", reason: "the owner has frozen the vault" }), /REFUSED\*\* at the KEEP/);
+  const none = renderRule({ ...base, isVauban: false });
+  assert.match(none, /not a Vauban vault/);
+  assert.doesNotMatch(none, /PASS|HOLD|REFUSED/);
 });
 
 test("words past the end of the data throw rather than read garbage", () => {

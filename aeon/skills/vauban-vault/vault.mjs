@@ -82,7 +82,7 @@ export function fold(logs) {
   return logs.reduce((s, l) => applyLog(s, l), emptySheet());
 }
 
-function call(url, body) {
+export function call(url, body) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const lib = u.protocol === "https:" ? requestTls : request;

@@ -8,7 +8,7 @@ bin/install-skill-pack vaubandev/vauban --path aeon
 
 | Skill | What it does | Secrets | Capabilities | Default schedule |
 |---|---|---|---|---|
-| `vauban-vault` | Reports the sheet a vault enforces on its agent: allowlist, caps left this hour and UTC day, moves held at the gate, freeze and revision. `watch:0xVAULT` reports only what changed since the last run. | none | `read_only`, `sends_notifications` | `0 */6 * * *`, disabled until you enable it |
+| `vauban-vault` | Reports the sheet a vault enforces on its agent: allowlist, caps left this hour and UTC day, moves held at the gate, freeze and revision. `watch:0xVAULT` reports only what changed since the last run. `rule:0xVAULT 0xTARGET` dry-runs one call and says pass, hold or refused, and at which rampart. | none | `read_only`, `sends_notifications` | `0 */6 * * *`, disabled until you enable it |
 
 The vault holds an agent's funds and checks every call against four ramparts: spend caps, an allowlist, a time-lock and an owner freeze. This pack only reads that vault. It never signs, never broadcasts and never asks for a key.
 
@@ -20,6 +20,10 @@ The contract passes its own test suite and is **not audited**. One reference vau
 
 ```bash
 node aeon/skills/vauban-vault/status.mjs 0xf9322f1546de5a121cdc09522e70af79e30e4097
+
+# would the vault let its agent send 1 ETH to 0xdead? (no: refused at the curtain)
+node aeon/skills/vauban-vault/rule.mjs 0xf9322f1546de5a121cdc09522e70af79e30e4097 \
+  --to 0x000000000000000000000000000000000000dEaD --value 1000000000000000000
 ```
 
 Any other address whose code does not match the pinned hash is reported as not a Vauban vault.

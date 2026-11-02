@@ -60,6 +60,14 @@ test("Aeon function selectors match the ABI", () => {
   }
 });
 
+test("rule.mjs uses the real rule() selector and names every error by its real selector", async () => {
+  const src = readFileSync(new URL("../../aeon/skills/vauban-vault/rule.mjs", import.meta.url), "utf8");
+  const ruleFn = fns.find((f) => f.name === "rule")!;
+  assert.match(src, new RegExp(`const RULE = "${toFunctionSelector(ruleFn).slice(2)}"`));
+  const bySel = new Map(errors.map((e) => [toFunctionSelector(e as never).slice(2), (e as { name: string }).name]));
+  for (const [, sel, name] of src.matchAll(/"([0-9a-f]{8})": \["(\w+)"/g)) assert.equal(bySel.get(sel), name, `0x${sel}`);
+});
+
 test("every refusal selector the pack names is a real vault error", () => {
   const known = new Set(errors.map((e) => toFunctionSelector(e as never).slice(2)));
   for (const sel of Object.keys(REFUSAL)) assert.ok(known.has(sel), `0x${sel} is not a VaubanVault error`);
