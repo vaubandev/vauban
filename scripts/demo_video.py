@@ -80,11 +80,12 @@ class F:
         self.d.line([(x * SS, y * SS) for x, y in pts], fill=fill, width=max(1, round(width * SS)))
 
     def grid(self, step=60, col=GRID, drift=0.0):
-        off = int(drift * SS) % (step * SS)
-        for x in range(-off, W * SS, step * SS):
-            self.d.line([x, 0, x, H * SS], fill=col, width=1)
-        for y in range(0, H * SS, step * SS):
-            self.d.line([0, y, W * SS, y], fill=col, width=1)
+        # Same contours as the site; the old pixel drift becomes a slow turn.
+        X.SS, saved = SS, X.SS
+        try:
+            X.contours(self.d, W, H, col, rot=drift * 0.0006)
+        finally:
+            X.SS = saved
 
     def frame(self):
         return self.im.resize((W, H), Image.LANCZOS)

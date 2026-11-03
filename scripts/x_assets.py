@@ -78,11 +78,30 @@ def fort(d, cx, cy, r, ink, faint):
     d.rectangle([cx - s, cy - s, cx + s, cy + s], fill=FIRE)
 
 
+def contours(d, w, h, col, cx=None, cy=None, rot=0.0):
+    """Survey contours of a bastioned trace, the same background as site/trace.svg."""
+    cx = w * 0.72 if cx is None else cx
+    cy = h * 0.5 if cy is None else cy
+    span = max(w, h)
+    for k, f in enumerate((0.16, 0.225, 0.295, 0.37, 0.45, 0.54, 0.63)):
+        pts = trace(cx * SS, cy * SS, span * f * SS, rot=pi / 8 + k * 0.035 + rot)
+        if k % 2:
+            for i in range(len(pts)):
+                a, b = pts[i], pts[(i + 1) % len(pts)]
+                for t in range(0, 10, 2):
+                    d.line([(a[0] + (b[0] - a[0]) * t / 10, a[1] + (b[1] - a[1]) * t / 10),
+                            (a[0] + (b[0] - a[0]) * (t + 1) / 10, a[1] + (b[1] - a[1]) * (t + 1) / 10)], fill=col, width=SS)
+        else:
+            d.line(pts + [pts[0]], fill=col, width=SS)
+    for i in range(8):
+        a = pi / 8 + i * pi / 4 + rot
+        for t in range(0, 60, 3):
+            r0, r1 = span * 0.02 * t, span * 0.02 * (t + 0.4)
+            d.line([((cx + r0 * cos(a)) * SS, (cy + r0 * sin(a)) * SS), ((cx + r1 * cos(a)) * SS, (cy + r1 * sin(a)) * SS)], fill=col, width=SS)
+
+
 def grid(d, w, h, step, col):
-    for x in range(0, w * SS, step * SS):
-        d.line([x, 0, x, h * SS], fill=col, width=1)
-    for y in range(0, h * SS, step * SS):
-        d.line([0, y, w * SS, y], fill=col, width=1)
+    contours(d, w, h, col)
 
 
 def text(d, xy, s, f, fill, anchor="la"):
