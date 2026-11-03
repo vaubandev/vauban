@@ -3,7 +3,7 @@ import {
   type Address, type EIP1193Provider, type Hex,
   createPublicClient, createWalletClient, custom, formatEther, getAddress, http, isAddress, isHex, parseEther,
 } from "viem";
-import { type HeldMove, robinhoodChain, readState, listHeld, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
+import { type HeldMove, type Listing, robinhoodChain, readState, listHeld, listAllowed, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
 
 declare global {
   interface Window { ethereum?: EIP1193Provider }
@@ -38,11 +38,12 @@ async function load() {
   try {
     const code = await pub.getCode({ address: vault });
     if (!code || code === "0x") throw new Error("No contract at this address on Robinhood Chain.");
-    const [s, eth, sp, held] = await Promise.all([
+    const [s, eth, sp, held, allow] = await Promise.all([
       readState(pub, vault),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "limits", args: [NATIVE] }),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "spent", args: [NATIVE] }),
       fetchHeld(),
+      listAllowed(pub, vault),
     ]);
     // a newer load started while we were reading; let it render
     if (mine !== seq) return;
@@ -70,6 +71,7 @@ async function load() {
     setText("whoami", me ? (isOwner ? `Connected as owner ${short(me)}` : `Connected ${short(me)} — not the owner, read-only`) : "Not connected — read-only");
 
     renderHeld(held, !!isOwner);
+    renderAllowed(allow);
     $("tBody").hidden = false;
     status("Up to date · " + new Date().toLocaleTimeString(), "ok");
   } catch (e) {
@@ -84,6 +86,43 @@ async function fetchHeld(): Promise<HeldMove[]> {
   // public RPCs cap log ranges; recent window is enough for a 6h gate
   const from = head > 200_000n ? head - 200_000n : 0n;
   return listHeld(pub, vault!, from);
+}
+
+function renderAllowed(allow: Listing[]) {
+  const list = $("cList");
+  list.replaceChildren();
+  const n = allow.reduce((k, l) => k + l.selectors.length, 0);
+  setText("cCount", String(n));
+  if (!n) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "Nothing listed: the agent can call nothing.";
+    list.append(li);
+    return;
+  }
+  for (const l of allow) {
+    for (const sel of l.selectors) {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "centry";
+      b.title = "Rule a call to this entry";
+      const t = document.createElement("span");
+      t.className = "ct";
+      t.textContent = l.target;
+      const s = document.createElement("span");
+      s.className = "cs";
+      s.textContent = sel === "0x00000000" ? "plain ETH send" : sel;
+      b.append(t, s);
+      b.addEventListener("click", () => {
+        $<HTMLInputElement>("rTo").value = l.target;
+        $<HTMLInputElement>("rData").value = sel === "0x00000000" ? "" : sel;
+        $<HTMLInputElement>("rValue").focus();
+      });
+      li.append(b);
+      list.append(li);
+    }
+  }
 }
 
 function renderHeld(held: HeldMove[], isOwner: boolean) {

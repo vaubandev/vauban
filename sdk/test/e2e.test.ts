@@ -10,7 +10,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanAgent, VaubanOwner, Refused, NATIVE, listHeld, readState, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanAgent, VaubanOwner, Refused, NATIVE, listAllowed, listHeld, readState, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
 // anvil's well-known dev keys — local chain only
@@ -63,6 +63,25 @@ before(async () => {
 after(() => anvil?.kill());
 
 const buy = (v: string) => ({ target: router, value: parseEther(v), data: encodeFunctionData({ abi: SINK, functionName: "buy" }) });
+
+test("listAllowed shows the curtain as it stands, including removals", async () => {
+  const buySel = toFunctionSelector("buy()");
+  const sellSel = toFunctionSelector("sell()");
+  const find = async (t: Address) => (await listAllowed(pub, vault)).find((l) => l.target.toLowerCase() === t.toLowerCase());
+
+  assert.deepEqual((await find(router))?.selectors, [buySel]);
+  assert.deepEqual((await find(TREASURY))?.selectors, ["0x00000000"]);
+
+  await owner.allow(router, [sellSel]);
+  assert.deepEqual((await find(router))?.selectors, [buySel, sellSel].sort());
+
+  await owner.disallow(router, [sellSel]);
+  assert.deepEqual((await find(router))?.selectors, [buySel]);
+
+  await owner.disallow(TREASURY, ["0x00000000"]);
+  assert.equal(await find(TREASURY), undefined, "a target with nothing left is not listed");
+  await owner.allow(TREASURY, ["0x00000000"]);
+});
 
 test("small buy passes", async () => {
   assert.equal(await agent.rule(buy("0.04")), "pass");

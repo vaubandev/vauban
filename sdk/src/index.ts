@@ -13,6 +13,7 @@ import {
   encodeFunctionData,
   formatEther,
   parseAbi,
+  zeroAddress,
   zeroHash,
 } from "viem";
 import { vaubanVaultAbi } from "./abi.ts";
@@ -258,6 +259,41 @@ export async function readState(pub: PublicClient, vault: Address): Promise<Vaul
     pub.getBalance({ address: vault }),
   ]);
   return { owner, agent, frozen, gateDelay: BigInt(gateDelay), revision: BigInt(revision), balance };
+}
+
+export type Listing = { target: Address; selectors: Hex[] };
+
+/**
+ * The curtain as it stands: every (target, selector) pair currently on the allowlist,
+ * rebuilt from `Listed` events and confirmed against `allowed()` so a pruned log range
+ * can never show a stale entry.
+ */
+export async function listAllowed(pub: PublicClient, vault: Address, step: bigint = 10_000_000n): Promise<Listing[]> {
+  // Walk back from head and stop at the constructor's OwnershipTransferred(0x0, owner).
+  // The public Robinhood RPC caps one log query at 10M blocks.
+  // One event per query: the public RPC allows 10M blocks for a single topic, only 100k for several.
+  // cacheTime 0: viem otherwise reuses a head up to pollingInterval old and misses a just-mined Listed
+  const head = await pub.getBlockNumber({ cacheTime: 0 });
+  const logs = [];
+  for (let to = head; to >= 0n;) {
+    const from = to >= step ? to - step + 1n : 0n;
+    logs.push(...(await pub.getContractEvents({ address: vault, abi: vaubanVaultAbi, eventName: "Listed", fromBlock: from, toBlock: to })));
+    const born = await pub.getContractEvents({ address: vault, abi: vaubanVaultAbi, eventName: "OwnershipTransferred", args: { from: zeroAddress }, fromBlock: from, toBlock: to });
+    if (born.length || from === 0n) break;
+    to = from - 1n;
+  }
+  logs.sort((a, b) => (a.blockNumber === b.blockNumber ? a.logIndex - b.logIndex : a.blockNumber < b.blockNumber ? -1 : 1));
+  const seen = new Map<string, { target: Address; selector: Hex }>();
+  for (const l of logs) seen.set(`${l.args.target}:${l.args.selector}`, { target: l.args.target!, selector: l.args.selector! });
+  const pairs = [...seen.values()];
+  const live = await Promise.all(pairs.map((p) =>
+    pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "allowed", args: [p.target, p.selector] })));
+  const byTarget = new Map<Address, Hex[]>();
+  pairs.forEach((p, i) => {
+    if (!live[i]) return;
+    byTarget.set(p.target, [...(byTarget.get(p.target) ?? []), p.selector].sort());
+  });
+  return [...byTarget].map(([target, selectors]) => ({ target, selectors }));
 }
 
 /** Moves still waiting at the gate (held, not yet released or cancelled). */

@@ -248,6 +248,15 @@ h3{font:500 22px/1.2 var(--serif);letter-spacing:-.01em;margin-bottom:10px}
 .tcard .btn{margin-top:auto}
 .tledger{margin-top:28px}
 .tledger dd{font:13px var(--mono)}
+.curtain{margin-top:64px;padding-top:28px;border-top:1px solid var(--ink)}
+.clist{list-style:none;border-top:1px solid var(--rule)}
+.clist li{border-bottom:1px solid var(--rule)}
+.clist .empty{padding:14px 0;color:var(--muted);font-size:13px}
+.centry{display:flex;justify-content:space-between;gap:16px;width:100%;padding:13px 0;background:none;border:0;color:var(--ink);font:13px var(--mono);text-align:left;cursor:pointer}
+.centry:hover .ct,.centry:focus-visible .ct{color:var(--fire)}
+.ct{overflow-wrap:anywhere;min-width:0}
+.cs{flex:none;color:var(--muted);font-weight:600;letter-spacing:.04em}
+@media (max-width:620px){.centry{flex-direction:column;gap:4px}}
 .rform{margin-top:64px;padding-top:28px;border-top:1px solid var(--ink)}
 .rnote{color:var(--muted);font-size:13px;margin:0 0 18px}
 .rgrid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
