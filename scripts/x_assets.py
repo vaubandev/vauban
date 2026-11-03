@@ -170,6 +170,40 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def npm_card():
+    W, H = 1600, 900
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    S = lambda *p: [v * SS for v in p]
+    mono, small = font(MONO, 22), font(MONO, 17)
+    bold = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 22)
+    dim = (160, 156, 138)
+    text(d, (96, 84), "PLATE VI  ·  ON NPM", small, OLIVE)
+    mark(d, 96, 128, 52, PAPER)
+    text(d, (166, 134), "VAUBAN", font(SERIF, 52, 500), PAPER)
+    text(d, (96, 232), "npm install", font(SERIF, 54, 400), PAPER)
+    text(d, (96, 296), "@vaubanworks/sdk", font(SERIF, 54, 400), FIRE)
+
+    # Code and output exactly as run against the live reference vault on 4663.
+    d.rectangle(S(96, 396, 1504, 772), fill=(26, 27, 21), outline=(48, 49, 40), width=SS)
+    lines = (
+        ("$ npm install @vaubanworks/sdk viem", PAPER, mono),
+        ("", PAPER, mono),
+        ("const agent = new VaubanAgent({ vault, public, wallet });", PAPER, mono),
+        ("await agent.rule({ target: \"0x…dEaD\", value: 10n ** 18n });", PAPER, mono),
+        ("", PAPER, mono),
+        ("Refused  curtain  CurtainNotListed", FIRE, bold),
+        ("0x…dEaD selector 0x00000000 is not on the allowlist", dim, mono),
+    )
+    for i, (ln, col, f) in enumerate(lines):
+        text(d, (128, 426 + i * 46), ln, f, col)
+
+    text(d, (96, 812), "Simulated first, so a refusal costs no gas. TypeScript, built on viem. Not audited.", small, dim)
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "tweet-npm.png")
+
+
 def try_card():
     W, H = 1600, 900
     img = canvas(W, H, PAPER)
