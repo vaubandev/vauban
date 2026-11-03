@@ -170,6 +170,24 @@ def tweet():
     done(img, "tweet-1.png")
 
 
+def trace_svg():
+    """site/trace.svg: survey contours of a bastioned trace, the page background instead of a grid."""
+    W, H, cx, cy = 1600, 1000, 1150, 500
+    paths = []
+    for k, r in enumerate((260, 360, 470, 590, 720, 860, 1010)):
+        pts = trace(cx, cy, r, rot=pi / 8 + k * 0.035)
+        d = "M" + " L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + " Z"
+        dash = ' stroke-dasharray="3 7"' if k % 2 else ""
+        paths.append(f'<path d="{d}"{dash}/>')
+    for i in range(8):
+        a = pi / 8 + i * pi / 4
+        paths.append(f'<path d="M{cx:.0f} {cy:.0f} L{cx + 1100 * cos(a):.1f} {cy + 1100 * sin(a):.1f}" stroke-dasharray="1 9"/>')
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" preserveAspectRatio="xMaxYMid slice">'
+           f'<g fill="none" stroke="#2a2c22" stroke-width="1">{"".join(paths)}</g></svg>\n')
+    (SITE / "trace.svg").write_text(svg)
+    print(f"trace.svg      {len(svg)} B")
+
+
 def npm_card():
     W, H = 1600, 900
     img = canvas(W, H, INK)

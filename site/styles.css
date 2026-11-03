@@ -30,11 +30,8 @@ a{color:inherit;text-decoration:none}
 
 /* hero */
 .hero{position:relative;background:var(--ink);color:var(--paper);padding:84px 0 92px;overflow:hidden}
-.grid-bg{position:absolute;inset:0;background-image:
-  linear-gradient(var(--ink3) 1px,transparent 1px),linear-gradient(90deg,var(--ink3) 1px,transparent 1px),
-  linear-gradient(var(--ink2) 1px,transparent 1px),linear-gradient(90deg,var(--ink2) 1px,transparent 1px);
-  background-size:120px 120px,120px 120px,24px 24px,24px 24px;opacity:.9;
-  -webkit-mask-image:radial-gradient(ellipse at 70% 50%,#000 30%,transparent 80%);mask-image:radial-gradient(ellipse at 70% 50%,#000 30%,transparent 80%)}
+.grid-bg{position:absolute;inset:0;background:url(/trace.svg) 72% 50%/cover no-repeat;
+  -webkit-mask-image:radial-gradient(ellipse at 70% 50%,#000 35%,transparent 85%);mask-image:radial-gradient(ellipse at 70% 50%,#000 35%,transparent 85%)}
 .hero-in{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
 .kicker{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--fire);margin-bottom:22px;display:flex;align-items:center;gap:12px}
 .kicker::before{content:"";width:28px;height:1px;background:currentColor}
@@ -133,7 +130,7 @@ h3{font:500 22px/1.2 var(--serif);letter-spacing:-.01em;margin-bottom:10px}
 
 /* inner page header */
 .phead{background:var(--ink);color:var(--paper);padding:76px 0 64px;position:relative;overflow:hidden;border-bottom:1px solid var(--rule-d)}
-.phead .grid-bg{-webkit-mask-image:linear-gradient(90deg,transparent,#000 70%);mask-image:linear-gradient(90deg,transparent,#000 70%)}
+.phead .grid-bg{background-position:100% 50%;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
 .phead-in{position:relative;display:grid;grid-template-columns:1fr auto;gap:40px;align-items:end}
 .phead h1{font-size:clamp(38px,5vw,64px)}
 .phead .lede{margin-bottom:0}
