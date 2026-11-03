@@ -162,13 +162,18 @@ async function connect() {
   await load();
 }
 
-function open(addr: string) {
-  if (!isAddress(addr)) { status("That is not a valid address.", "err"); return; }
+const RULE_KEYS = ["to", "value", "data"] as const;
+
+function open(addr: string, keepRule = false): Promise<void> {
+  if (!isAddress(addr)) { status("That is not a valid address.", "err"); return Promise.resolve(); }
   vault = getAddress(addr);
   const qs = new URLSearchParams(location.search);
   qs.set("vault", vault);
+  // A ruling in the URL belongs to the vault it was asked of.
+  if (!keepRule) RULE_KEYS.forEach((k) => qs.delete(k));
   history.replaceState(null, "", "?" + qs.toString());
-  load();
+  $("rShare").hidden = true;
+  return load();
 }
 
 $<HTMLFormElement>("vForm").addEventListener("submit", (e) => {
@@ -197,6 +202,12 @@ async function rule() {
   try { value = parseEther(eth); } catch { return verdict("Value must be a number of ETH.", "err"); }
   if (value < 0n) return verdict("Value cannot be negative.", "err");
   verdict("Asking the vault…", "hold");
+  const qs = new URLSearchParams(location.search);
+  qs.set("to", getAddress(to));
+  if (value > 0n) qs.set("value", eth); else qs.delete("value");
+  if (data !== "0x") qs.set("data", data); else qs.delete("data");
+  history.replaceState(null, "", "?" + qs.toString());
+  $("rShare").hidden = false;
   try {
     const r = await pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "rule", args: [getAddress(to), value, data] });
     if (r === 0) verdict("PASS — the vault would let this call land now.", "pass");
@@ -214,8 +225,40 @@ $<HTMLFormElement>("rForm").addEventListener("submit", (e) => {
   rule();
 });
 
-const q = new URLSearchParams(location.search).get("vault");
+$("rShare").addEventListener("click", async () => {
+  const btn = $("rShare");
+  try {
+    await navigator.clipboard.writeText(location.href);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = location.href;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  btn.textContent = "Copied";
+  setTimeout(() => (btn.textContent = "Copy link"), 1400);
+});
+
+const params = new URLSearchParams(location.search);
+const q = params.get("vault");
 if (q) {
   $<HTMLInputElement>("vAddr").value = q;
-  open(q);
+  const to = params.get("to");
+  if (to) {
+    $<HTMLInputElement>("rTo").value = to;
+    $<HTMLInputElement>("rValue").value = params.get("value") ?? "";
+    $<HTMLInputElement>("rData").value = params.get("data") ?? "";
+  }
+  open(q, true).then(() => {
+    if (!to || $("tBody").hidden) return;
+    if (!isAddress(to)) {
+      // Don't leave a link that can never rule sitting in the address bar.
+      const qs = new URLSearchParams(location.search);
+      RULE_KEYS.forEach((k) => qs.delete(k));
+      history.replaceState(null, "", "?" + qs.toString());
+    }
+    rule();
+  });
 }
