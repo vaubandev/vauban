@@ -5,6 +5,7 @@ site/.vercel/
 
 # deps & build
 node_modules/
+sdk/dist/
 contracts/out/
 contracts/cache/
 contracts/broadcast/
@@ -18,3 +19,4 @@ site/x-banner.png
 ref/
 .github/agents/
 .DS_Store
+sdk/*.tgz

@@ -1,12 +1,53 @@
 {
-  "name": "@vauban/sdk",
+  "name": "@vaubanworks/sdk",
   "version": "0.1.0",
-  "description": "",
-  "main": "src/index.ts",
+  "description": "TypeScript SDK for Vauban vaults on Robinhood Chain: an agent that is checked against caps, an allowlist, a time-lock and a kill switch on every call. Not audited.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./bytecode": {
+      "types": "./dist/bytecode.d.ts",
+      "import": "./dist/bytecode.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "typecheck": "tsc",
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
-    "abi": "python3 ../scripts/abi.py"
+    "abi": "python3 ../scripts/abi.py",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build && npm run typecheck"
+  },
+  "keywords": [
+    "vauban",
+    "vault",
+    "agent",
+    "robinhood-chain",
+    "viem",
+    "spend-limits"
+  ],
+  "homepage": "https://vauban.works",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaubandev/vauban.git",
+    "directory": "sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/vaubandev/vauban/issues"
   },
   "license": "MIT",
   "dependencies": {
@@ -17,6 +58,7 @@
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
   },
-  "type": "module",
-  "private": true
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -13,11 +13,17 @@ Target chain: Robinhood Chain (4663). Site: [vauban.works](https://vauban.works)
 
 > **Status:** not audited. One reference vault, holding nothing, is live on Robinhood Chain at `0xf9322f1546de5a121cdc09522e70af79e30e4097`. Do not use with real funds.
 
+```sh
+npm install @vaubanworks/sdk viem
+```
+
+See [sdk/README.md](sdk/README.md) for the agent and owner API.
+
 ## Layout
 
 ```
 contracts/   Foundry: VaubanVault.sol, tests, deploy script
-sdk/         TypeScript (viem): VaubanAgent, VaubanOwner, e2e tests, deploy script
+sdk/         TypeScript (viem): VaubanAgent, VaubanOwner, e2e tests, deploy script. Published as @vaubanworks/sdk
 aeon/        Aeon skill pack: read-only vault reports (listed in aeonfun/aeon)
 pages/       Site sources
 site/        Built static site (Vercel root)
@@ -33,6 +39,7 @@ cd contracts && forge test
 
 # sdk (needs anvil, from ~/.foundry/bin or PATH; drift tests need `forge build` first)
 cd sdk && npm ci && npm run typecheck && npm test
+npm run build    # dist/ for npm; npm pack --dry-run to see what ships
 
 # aeon pack (no network)
 node --test aeon/test/vault.test.mjs

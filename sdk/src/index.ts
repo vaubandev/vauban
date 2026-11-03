@@ -19,7 +19,7 @@ import { vaubanVaultAbi } from "./abi.ts";
 
 export { vaubanVaultAbi };
 
-export const robinhoodChain = defineChain({
+export const robinhoodChain: Chain = defineChain({
   id: 4663,
   name: "Robinhood Chain",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
