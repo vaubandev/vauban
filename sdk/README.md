@@ -60,7 +60,7 @@ Also: `disallow`, `setGateDelay`, `unfreeze`, `cancel` (a held move), `withdraw`
 
 ## Reading
 
-`readState(pub, vault)` returns owner, agent, frozen, gate delay, revision and balance. `listHeld(pub, vault, fromBlock)` returns the moves waiting at the gate.
+`readState(pub, vault)` returns owner, agent, frozen, gate delay, revision and balance. `listHeld(pub, vault, fromBlock)` returns the moves waiting at the gate. `listAllowed(pub, vault)` returns the curtain as it stands: each target with the selectors the agent may call, confirmed against `allowed()`.
 
 ## Deploying a vault
 
