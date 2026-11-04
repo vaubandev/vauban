@@ -296,6 +296,38 @@ export async function listAllowed(pub: PublicClient, vault: Address, step: bigin
   return [...byTarget].map(([target, selectors]) => ({ target, selectors }));
 }
 
+export type RecordEntry = { event: string; args: Record<string, unknown>; block: bigint; logIndex: number; tx: Hex; time?: Date };
+
+/**
+ * Every event the vault has emitted, newest first: rule changes, freezes, passes, holds.
+ * One address-only query per window; the public RPC allows 10M blocks for that.
+ */
+export async function listRecord(pub: PublicClient, vault: Address, opts: { step?: bigint; times?: boolean } = {}): Promise<RecordEntry[]> {
+  const step = opts.step ?? 10_000_000n;
+  const head = await pub.getBlockNumber({ cacheTime: 0 });
+  const out: RecordEntry[] = [];
+  let born = false;
+  for (let to = head; to >= 0n && !born;) {
+    const from = to >= step ? to - step + 1n : 0n;
+    for (const l of await pub.getLogs({ address: vault, fromBlock: from, toBlock: to })) {
+      let d;
+      try { d = decodeEventLog({ abi: vaubanVaultAbi, data: l.data, topics: l.topics }); } catch { continue; }
+      const args = (d.args ?? {}) as Record<string, unknown>;
+      if (d.eventName === "OwnershipTransferred" && args.from === zeroAddress) born = true;
+      out.push({ event: d.eventName, args, block: l.blockNumber!, logIndex: l.logIndex!, tx: l.transactionHash! });
+    }
+    if (from === 0n) break;
+    to = from - 1n;
+  }
+  out.sort((a, b) => (a.block === b.block ? b.logIndex - a.logIndex : a.block > b.block ? -1 : 1));
+  if (opts.times) {
+    const blocks = [...new Set(out.map((e) => e.block))];
+    const ts = new Map(await Promise.all(blocks.map(async (n) => [n, (await pub.getBlock({ blockNumber: n })).timestamp] as const)));
+    for (const e of out) e.time = new Date(Number(ts.get(e.block)) * 1000);
+  }
+  return out;
+}
+
 /** Moves still waiting at the gate (held, not yet released or cancelled). */
 export async function listHeld(pub: PublicClient, vault: Address, fromBlock: bigint = 0n): Promise<HeldMove[]> {
   const logs = await pub.getContractEvents({ address: vault, abi: vaubanVaultAbi, eventName: "HeldAtGate", fromBlock });

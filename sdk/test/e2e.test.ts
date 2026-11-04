@@ -10,7 +10,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanAgent, VaubanOwner, Refused, NATIVE, listAllowed, listHeld, readState, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanAgent, VaubanOwner, Refused, NATIVE, listAllowed, listHeld, listRecord, readState, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
 // anvil's well-known dev keys — local chain only
@@ -132,4 +132,17 @@ test("freeze seals the keep; agent cannot lift it", async () => {
   const asAgentOwner = new VaubanOwner({ vault, public: pub, wallet: agentW });
   await assert.rejects(asAgentOwner.unfreeze(), (e: unknown) => e instanceof Refused && e.code === "NotOwner");
   await owner.unfreeze();
+});
+
+test("listRecord returns the vault's whole history, newest first", async () => {
+  const rec = await listRecord(pub, vault, { times: true });
+  assert.equal(rec[0].event, "Frozen");
+  assert.equal(rec[0].args.frozen, false, "the unfreeze is the latest entry");
+  const last = rec[rec.length - 1];
+  assert.ok(last.event === "OwnershipTransferred" || last.event === "AgentSet", "the constructor is the oldest entry");
+  for (const e of ["Listed", "LimitsSet", "PolicyRevised", "Passed", "HeldAtGate"]) assert.ok(rec.some((r) => r.event === e), e);
+  for (let i = 1; i < rec.length; i++) assert.ok(rec[i - 1].block >= rec[i].block, "sorted newest first");
+  assert.ok(rec.every((r) => r.time instanceof Date));
+  const s = await readState(pub, vault);
+  assert.equal(rec.filter((r) => r.event === "PolicyRevised").length, Number(s.revision), "one PolicyRevised per revision");
 });

@@ -275,6 +275,18 @@ h3{font:500 22px/1.2 var(--serif);letter-spacing:-.01em;margin-bottom:10px}
 .held li{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule);font-size:13px}
 .held li.empty{display:block;color:var(--muted)}
 .held .eta{color:var(--muted)}
+.record{margin-top:64px;padding-top:28px;border-top:1px solid var(--ink)}
+.rlist{list-style:none;border-top:1px solid var(--rule)}
+.rlist li{display:grid;grid-template-columns:190px 1fr;gap:16px;padding:12px 0 12px 16px;border-bottom:1px solid var(--rule);font:13px var(--mono);position:relative}
+.rlist li::before{content:"";position:absolute;left:0;top:17px;width:7px;height:7px;background:var(--muted)}
+.rlist li[data-kind="pass"]::before{background:#5e6a2c}
+.rlist li[data-kind="hold"]::before{background:var(--ink)}
+.rlist li[data-kind="refused"]::before{background:var(--fire)}
+.rlist li[data-kind="owner"]::before{background:var(--fire);opacity:.55}
+.rlist li[data-kind="rev"]{color:var(--muted)}
+.rt{color:var(--muted)}
+.rd{overflow-wrap:anywhere;min-width:0}
+@media (max-width:620px){.rlist li{grid-template-columns:1fr;gap:4px}}
 .btn-line{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:8px 12px;border:1px solid var(--fire);background:transparent;color:var(--fire);cursor:pointer}
 .btn-line:hover{background:var(--fire);color:var(--ink)}
 

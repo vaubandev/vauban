@@ -3,7 +3,7 @@ import {
   type Address, type EIP1193Provider, type Hex,
   createPublicClient, createWalletClient, custom, formatEther, getAddress, http, isAddress, isHex, parseEther,
 } from "viem";
-import { type HeldMove, type Listing, robinhoodChain, readState, listHeld, listAllowed, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
+import { type HeldMove, type Listing, type RecordEntry, robinhoodChain, readState, listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
 
 declare global {
   interface Window { ethereum?: EIP1193Provider }
@@ -38,12 +38,13 @@ async function load() {
   try {
     const code = await pub.getCode({ address: vault });
     if (!code || code === "0x") throw new Error("No contract at this address on Robinhood Chain.");
-    const [s, eth, sp, held, allow] = await Promise.all([
+    const [s, eth, sp, held, allow, rec] = await Promise.all([
       readState(pub, vault),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "limits", args: [NATIVE] }),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "spent", args: [NATIVE] }),
       fetchHeld(),
       listAllowed(pub, vault),
+      listRecord(pub, vault, { times: true }),
     ]);
     // a newer load started while we were reading; let it render
     if (mine !== seq) return;
@@ -72,6 +73,7 @@ async function load() {
 
     renderHeld(held, !!isOwner);
     renderAllowed(allow);
+    renderRecord(rec);
     $("tBody").hidden = false;
     status("Up to date · " + new Date().toLocaleTimeString(), "ok");
   } catch (e) {
@@ -122,6 +124,48 @@ function renderAllowed(allow: Listing[]) {
       li.append(b);
       list.append(li);
     }
+  }
+}
+
+const eth = (v: unknown) => formatEther(v as bigint) + " ETH";
+const sel = (s: unknown) => (s === "0x00000000" ? "plain ETH send" : String(s));
+
+// [kind, plain-words line] for one event; kind drives the marker colour
+function describe(e: RecordEntry): [string, string] {
+  const a = e.args;
+  switch (e.event) {
+    case "Passed": return ["pass", `Agent call passed: ${short(String(a.target))} · ${sel(a.selector)} · ${eth(a.value)}${a.heldId !== "0x" + "0".repeat(64) ? " (released from the gate)" : ""}`];
+    case "HeldAtGate": return ["hold", `Held at the gate: ${short(String(a.target))} · ${eth(a.value)} · until ${new Date(Number(a.eta) * 1000).toLocaleString()}`];
+    case "Cancelled": return ["owner", `Owner dropped a held move ${short(String(a.id))}`];
+    case "Frozen": return [a.frozen ? "refused" : "owner", a.frozen ? "Keep sealed: the agent can do nothing" : "Keep opened again"];
+    case "Listed": return ["owner", `${a.ok ? "Allowed" : "Removed"} ${sel(a.selector)} on ${short(String(a.target))}`];
+    case "LimitsSet": return ["owner", a.set
+      ? `Limits for ${a.asset === NATIVE ? "ETH" : short(String(a.asset))}: ${formatEther(a.perTx as bigint)} / call · ${formatEther(a.perHour as bigint)} / h · ${formatEther(a.perDay as bigint)} / day · hold above ${formatEther(a.holdAbove as bigint)}`
+      : `Limits removed for ${a.asset === NATIVE ? "ETH" : short(String(a.asset))}: it cannot move`];
+    case "PolicyRevised": return ["rev", `Rules now at revision ${a.revision}`];
+    case "AgentSet": return ["owner", `Agent set to ${short(String(a.agent))}`];
+    case "OwnershipTransferStarted": return ["owner", `Owner offered the vault to ${short(String(a.to))}`];
+    case "OwnershipTransferred": return ["owner", a.from === "0x0000000000000000000000000000000000000000" ? `Vault built, owner ${short(String(a.to))}` : `Owner is now ${short(String(a.to))}`];
+    default: return ["rev", e.event];
+  }
+}
+
+function renderRecord(rec: RecordEntry[]) {
+  const list = $("recList");
+  list.replaceChildren();
+  setText("recCount", String(rec.length));
+  for (const e of rec) {
+    const [kind, line] = describe(e);
+    const li = document.createElement("li");
+    li.dataset.kind = kind;
+    const t = document.createElement("span");
+    t.className = "rt";
+    t.textContent = e.time ? e.time.toLocaleString() : "block " + e.block;
+    const d = document.createElement("span");
+    d.className = "rd";
+    d.textContent = line;
+    li.append(t, d);
+    list.append(li);
   }
 }
 
