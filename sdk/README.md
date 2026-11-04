@@ -60,7 +60,9 @@ Also: `disallow`, `setGateDelay`, `unfreeze`, `cancel` (a held move), `withdraw`
 
 ## Reading
 
-`readState(pub, vault)` returns owner, agent, frozen, gate delay, revision and balance. `listHeld(pub, vault, fromBlock)` returns the moves waiting at the gate. `listAllowed(pub, vault)` returns the curtain as it stands: each target with the selectors the agent may call, confirmed against `allowed()`.
+`readState(pub, vault)` returns owner, agent, frozen, gate delay, revision and balance. `listHeld(pub, vault, fromBlock)` returns the moves waiting at the gate. `listAllowed(pub, vault)` returns the curtain as it stands: each target with the selectors the agent may call, confirmed against `allowed()`. `listRecord(pub, vault, { times: true })` returns every event the vault has emitted, newest first.
+
+`inspect(pub, vault)` checks the vault's own settings and returns findings (`risk`, `warn` or `info`) for the ones that do not do what they look like: an agent that is also the owner, caps that cancel each other out, a gate that can never hold. It reads the chain only and is not an audit of the contract.
 
 ## Deploying a vault
 
