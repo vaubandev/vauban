@@ -296,6 +296,71 @@ export async function listAllowed(pub: PublicClient, vault: Address, step: bigin
   return [...byTarget].map(([target, selectors]) => ({ target, selectors }));
 }
 
+export type Finding = { level: "risk" | "warn" | "info"; code: string; text: string };
+
+const TOKEN_MOVES = new Set(["0xa9059cbb", "0x23b872dd", "0x095ea7b3", "0x39509351"]);
+const PLAIN_SEL = "0x00000000";
+
+/**
+ * Reads a vault's own settings and reports the ones that do not do what an owner would expect.
+ * Every rule mirrors the contract's ruling order: keep, curtain, ditch, gate.
+ */
+export async function inspect(pub: PublicClient, vault: Address): Promise<Finding[]> {
+  const base = { address: vault, abi: vaubanVaultAbi } as const;
+  const [s, pending, eth, allow] = await Promise.all([
+    readState(pub, vault),
+    pub.readContract({ ...base, functionName: "pendingOwner" }),
+    pub.readContract({ ...base, functionName: "limits", args: [NATIVE] }),
+    listAllowed(pub, vault),
+  ]);
+  const f: Finding[] = [];
+  const e = (v: bigint) => formatEther(v) + " ETH";
+
+  if (s.owner.toLowerCase() === s.agent.toLowerCase())
+    f.push({ level: "risk", code: "owner-is-agent", text: "The agent is also the owner, so it can rewrite its own rules. Give the agent its own key." });
+  if (pending !== zeroAddress)
+    f.push({ level: "warn", code: "pending-owner", text: `Ownership is offered to ${pending} and not yet accepted. Until it is, the current owner still holds the vault.` });
+  if (s.frozen)
+    f.push({ level: "info", code: "sealed", text: "The keep is sealed: the agent can do nothing until the owner opens it." });
+
+  const [set, perTx, perHour, perDay, holdAbove] = eth;
+  if (!set) {
+    f.push({ level: "info", code: "eth-unset", text: "No ETH limits: any call that sends ETH is refused." });
+  } else {
+    if (perDay === 0n || perTx === 0n)
+      f.push({ level: "info", code: "eth-zero", text: "An ETH limit is 0: no ETH can move." });
+    if (perTx > perHour)
+      f.push({ level: "warn", code: "tx-over-hour", text: `Per-call limit ${e(perTx)} is above the hourly ${e(perHour)}; the real per-call limit is ${e(perHour)}.` });
+    if (perHour > perDay)
+      f.push({ level: "warn", code: "hour-over-day", text: `Hourly limit ${e(perHour)} is above the daily ${e(perDay)}; the real hourly limit is ${e(perDay)}.` });
+    if (holdAbove === 0n)
+      f.push({ level: "warn", code: "gate-off", text: "No hold threshold: every allowed ETH move lands at once, nothing waits at the gate." });
+    else if (holdAbove >= perTx)
+      f.push({ level: "warn", code: "gate-unreachable", text: `Hold threshold ${e(holdAbove)} is not below the per-call limit ${e(perTx)}, so nothing can ever be held: larger moves are refused first.` });
+    else if (s.gateDelay === 0n)
+      f.push({ level: "warn", code: "gate-instant", text: "Gate delay is 0: held moves can be released at once, the owner has no time to cancel." });
+  }
+
+  const targets = [...new Set(allow.map((l) => l.target))];
+  const [codes, tokenLimits] = await Promise.all([
+    Promise.all(targets.map((t) => pub.getCode({ address: t }))),
+    Promise.all(targets.map((t) => pub.readContract({ ...base, functionName: "limits", args: [t] }))),
+  ]);
+  allow.forEach((l) => {
+    const i = targets.indexOf(l.target);
+    const hasCode = !!codes[i] && codes[i] !== "0x";
+    const calls = l.selectors.filter((x) => x !== PLAIN_SEL);
+    if (!hasCode && calls.length)
+      f.push({ level: "warn", code: "eoa-target", text: `${l.target} has no contract code, yet ${calls.join(", ")} is allowed on it. A call there only sends ETH.` });
+    const moves = l.selectors.filter((x) => TOKEN_MOVES.has(x));
+    if (moves.length && !tokenLimits[i][0])
+      f.push({ level: "warn", code: "token-unset", text: `Token moves (${moves.join(", ")}) are allowed on ${l.target}, but it has no limits, so any amount above 0 is refused.` });
+  });
+  if (!allow.length)
+    f.push({ level: "info", code: "curtain-empty", text: "Nothing is allowed yet: the agent can call nothing." });
+  return f;
+}
+
 export type RecordEntry = { event: string; args: Record<string, unknown>; block: bigint; logIndex: number; tx: Hex; time?: Date };
 
 /**

@@ -10,7 +10,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanAgent, VaubanOwner, Refused, NATIVE, listAllowed, listHeld, listRecord, readState, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanAgent, VaubanOwner, Refused, NATIVE, inspect, listAllowed, listHeld, listRecord, readState, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
 // anvil's well-known dev keys — local chain only
@@ -132,6 +132,34 @@ test("freeze seals the keep; agent cannot lift it", async () => {
   const asAgentOwner = new VaubanOwner({ vault, public: pub, wallet: agentW });
   await assert.rejects(asAgentOwner.unfreeze(), (e: unknown) => e instanceof Refused && e.code === "NotOwner");
   await owner.unfreeze();
+});
+
+test("inspect finds nothing to warn about on a well-set vault", async () => {
+  const f = await inspect(pub, vault);
+  assert.deepEqual(f.filter((x) => x.level !== "info"), []);
+});
+
+test("inspect flags settings that do not do what they look like", async () => {
+  const h = await ownerW.deployContract({ abi: vaubanVaultAbi, bytecode: vaubanVaultBytecode, args: [OWNER.address, OWNER.address, 0n] });
+  const bad = (await pub.waitForTransactionReceipt({ hash: h })).contractAddress!;
+  const o = new VaubanOwner({ vault: bad, public: pub, wallet: ownerW });
+  const codes = async () => (await inspect(pub, bad)).map((x) => x.code).sort();
+
+  assert.deepEqual(await codes(), ["curtain-empty", "eth-unset", "owner-is-agent"]);
+
+  await o.setLimits(NATIVE, { perTx: parseEther("1"), perHour: parseEther("0.5"), perDay: parseEther("0.2"), holdAbove: 0n });
+  await o.allow(TREASURY, [toFunctionSelector("buy()")]);
+  await o.allow(router, [toFunctionSelector("transfer(address,uint256)")]);
+  assert.deepEqual(await codes(), ["eoa-target", "gate-off", "hour-over-day", "owner-is-agent", "token-unset", "tx-over-hour"]);
+
+  await o.setLimits(NATIVE, { perTx: parseEther("0.1"), perHour: parseEther("0.3"), perDay: parseEther("1"), holdAbove: parseEther("0.1") });
+  assert.ok((await codes()).includes("gate-unreachable"));
+  // proof the warning is real: just over the threshold is refused, never held
+  const asAgent = new VaubanAgent({ vault: bad, public: pub, wallet: ownerW });
+  await assert.rejects(asAgent.rule({ target: router, value: parseEther("0.11"), data: toFunctionSelector("transfer(address,uint256)") + "0".repeat(128) as Hex }), (e: unknown) => e instanceof Refused);
+
+  await o.setLimits(NATIVE, { perTx: parseEther("0.1"), perHour: parseEther("0.3"), perDay: parseEther("1"), holdAbove: parseEther("0.05") });
+  assert.ok((await codes()).includes("gate-instant"), "delay 0 is flagged once the gate can hold");
 });
 
 test("listRecord returns the vault's whole history, newest first", async () => {

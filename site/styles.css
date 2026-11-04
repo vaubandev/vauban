@@ -275,6 +275,17 @@ h3{font:500 22px/1.2 var(--serif);letter-spacing:-.01em;margin-bottom:10px}
 .held li{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule);font-size:13px}
 .held li.empty{display:block;color:var(--muted)}
 .held .eta{color:var(--muted)}
+.inspect{margin-top:64px;padding-top:28px;border-top:1px solid var(--ink)}
+.ilist{list-style:none;border-top:1px solid var(--rule)}
+.ilist li{display:grid;grid-template-columns:72px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--rule);font-size:14px;line-height:1.5}
+.il{font:600 11px/1.9 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.ilist li[data-level="risk"] .il{color:var(--fire)}
+.ilist li[data-level="warn"] .il{color:var(--ink)}
+.ilist li[data-level="ok"] .il{color:#5e6a2c}
+.ilist li[data-level="info"] .it{color:var(--muted)}
+.it{overflow-wrap:anywhere;min-width:0}
+.count[data-kind="ok"]{color:#5e6a2c}
+@media (max-width:620px){.ilist li{grid-template-columns:1fr;gap:2px}}
 .record{margin-top:64px;padding-top:28px;border-top:1px solid var(--ink)}
 .rlist{list-style:none;border-top:1px solid var(--rule)}
 .rlist li{display:grid;grid-template-columns:190px 1fr;gap:16px;padding:12px 0 12px 16px;border-bottom:1px solid var(--rule);font:13px var(--mono);position:relative}

@@ -3,7 +3,7 @@ import {
   type Address, type EIP1193Provider, type Hex,
   createPublicClient, createWalletClient, custom, formatEther, getAddress, http, isAddress, isHex, parseEther,
 } from "viem";
-import { type HeldMove, type Listing, type RecordEntry, robinhoodChain, readState, listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
+import { type Finding, type HeldMove, type Listing, type RecordEntry, robinhoodChain, readState, inspect, listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
 
 declare global {
   interface Window { ethereum?: EIP1193Provider }
@@ -38,13 +38,14 @@ async function load() {
   try {
     const code = await pub.getCode({ address: vault });
     if (!code || code === "0x") throw new Error("No contract at this address on Robinhood Chain.");
-    const [s, eth, sp, held, allow, rec] = await Promise.all([
+    const [s, eth, sp, held, allow, rec, found] = await Promise.all([
       readState(pub, vault),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "limits", args: [NATIVE] }),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "spent", args: [NATIVE] }),
       fetchHeld(),
       listAllowed(pub, vault),
       listRecord(pub, vault, { times: true }),
+      inspect(pub, vault),
     ]);
     // a newer load started while we were reading; let it render
     if (mine !== seq) return;
@@ -74,6 +75,7 @@ async function load() {
     renderHeld(held, !!isOwner);
     renderAllowed(allow);
     renderRecord(rec);
+    renderFindings(found);
     $("tBody").hidden = false;
     status("Up to date · " + new Date().toLocaleTimeString(), "ok");
   } catch (e) {
@@ -147,6 +149,29 @@ function describe(e: RecordEntry): [string, string] {
     case "OwnershipTransferStarted": return ["owner", `Owner offered the vault to ${short(String(a.to))}`];
     case "OwnershipTransferred": return ["owner", a.from === "0x0000000000000000000000000000000000000000" ? `Vault built, owner ${short(String(a.to))}` : `Owner is now ${short(String(a.to))}`];
     default: return ["rev", e.event];
+  }
+}
+
+const LEVEL = { risk: "Risk", warn: "Check", info: "Note" } as const;
+
+function renderFindings(found: Finding[]) {
+  const list = $("iList");
+  list.replaceChildren();
+  const serious = found.filter((x) => x.level !== "info").length;
+  setText("iCount", String(serious));
+  $("iCount").dataset.kind = serious ? "warn" : "ok";
+  const rows = serious ? found : [{ level: "ok", text: "Nothing to warn about: every setting does what it looks like." }, ...found];
+  for (const x of rows) {
+    const li = document.createElement("li");
+    li.dataset.level = x.level;
+    const l = document.createElement("span");
+    l.className = "il";
+    l.textContent = x.level === "ok" ? "Clear" : LEVEL[x.level as Finding["level"]];
+    const t = document.createElement("span");
+    t.className = "it";
+    t.textContent = x.text;
+    li.append(l, t);
+    list.append(li);
   }
 }
 
