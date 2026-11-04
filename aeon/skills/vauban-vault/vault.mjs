@@ -7,7 +7,7 @@ export const RPC = "https://rpc.mainnet.chain.robinhood.com";
 export const CHAIN_ID = 4663;
 export const WINDOW = 10_000_000; // widest eth_getLogs range this RPC serves
 export const CODEHASH = "68c0d5c0bd112e54d96057e0162229d01904042b6ee08e372fd8ae4f5b3d795b";
-export const SEL = {owner:'8da5cb5b',agent:'f5ff5c76',frozen:'054f7d9c',gateDelay:'73d872d9',revision:'7cc96380',limits:'20d7bec1',spent:'1e6a41ea',held:'477809b1',symbol:'95d89b41',decimals:'313ce567'};
+export const SEL = {owner:'8da5cb5b',agent:'f5ff5c76',frozen:'054f7d9c',gateDelay:'73d872d9',revision:'7cc96380',limits:'20d7bec1',spent:'1e6a41ea',held:'477809b1',pendingOwner:'e30c3978',allowed:'08ccb016',symbol:'95d89b41',decimals:'313ce567'};
 export const ZERO = "0x" + "0".repeat(40);
 
 export const TOPIC = {

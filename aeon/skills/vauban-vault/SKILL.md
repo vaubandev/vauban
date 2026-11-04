@@ -1,11 +1,11 @@
 ---
 name: vauban-vault
-description: Read one Vauban vault on Robinhood Chain - the sheet in force, the caps left today, what is held at the gate, what changed since the last run, and how it would rule on a call before the agent sends it. Keyless, read-only.
+description: Read one Vauban vault on Robinhood Chain - the sheet in force, the caps left today, what is held at the gate, what changed since the last run, how it would rule on a call before the agent sends it, and which of its settings do not do what they look like. Keyless, read-only.
 metadata:
   title: Vauban Vault
   mode: read-only
   category: crypto
-  var: "Vauban vault address on Robinhood Chain (0x + 40 hex). Prefix watch: to be alerted only when it changes, or rule: to dry-run one call."
+  var: "Vauban vault address on Robinhood Chain (0x + 40 hex). Prefix watch: to be alerted only when it changes, rule: to dry-run one call, or inspect: to check its settings."
   tags:
     - crypto
     - robinhood-chain
@@ -20,6 +20,7 @@ metadata:
 > - `0xVAULT` reports the sheet in force now.
 > - `watch:0xVAULT` reports only what changed since the last run, and stays quiet when nothing did.
 > - `rule:0xVAULT 0xTARGET [VALUE_WEI] [0xCALLDATA]` asks the vault how it would rule on that call now: pass, hold or refused, and at which rampart.
+> - `inspect:0xVAULT` checks the vault's own settings for any that do not do what they look like, such as an agent that is also the owner or a gate that can never hold.
 >
 > If the value is empty or malformed, log `VAUBAN_BAD_VAULT` and exit without notifying.
 
@@ -37,7 +38,7 @@ The helpers use only Node.js, which ships with Aeon. They write nothing except t
 
 ## Steps
 
-1. **Validate** `${var}`. Strip one leading `watch:` or `rule:` if present. The vault that remains must be `0x` + 40 hex, otherwise log `VAUBAN_BAD_VAULT` and stop.
+1. **Validate** `${var}`. Strip one leading `watch:`, `rule:` or `inspect:` if present. The vault that remains must be `0x` + 40 hex, otherwise log `VAUBAN_BAD_VAULT` and stop.
 2. **Report the sheet** when there is no prefix:
    ```bash
    node skills/vauban-vault/status.mjs "${var}" > output/vauban-vault.md
@@ -60,8 +61,15 @@ The helpers use only Node.js, which ships with Aeon. They write nothing except t
    - The report starts with `PASS`, `HOLD` or `REFUSED at the <RAMPART>` plus the reason, read at the current block. `--json` prints the same as JSON.
    - Exit `2` (`VAUBAN_RULE_RPC_DOWN`), `3` (`VAUBAN_RULE_BAD_INPUT`: target, value or calldata malformed), `4` (`VAUBAN_RULE_NOT_VAUBAN`: nothing was asked).
    - A ruling is a dry run. It does not reserve the caps, so the agent's real call can still be refused if the sheet or the spend changes first.
-4. **Notify** with `./notify -f output/vauban-vault.md`. A sheet report and a ruling notify every run. A watch notifies only when the output starts with `VAUBAN CHANGED`. Never call a channel API directly.
-5. **Log** to `memory/logs/YYYY-MM-DD.md` under `### vauban-vault`: `VAUBAN_STATUS <vault> rev=<n> frozen=<bool> held=<n>` or `VAUBAN_WATCH_CHANGED <n>` or `VAUBAN_WATCH_QUIET` or `VAUBAN_RULE <vault> <target> <pass|hold|refused:rampart>`.
+3c. **Inspect the settings** when the prefix is `inspect:`:
+   ```bash
+   node skills/vauban-vault/inspect.mjs VAULT > output/vauban-vault.md
+   ```
+   - The report starts with `VAUBAN INSPECT CLEAR` or `VAUBAN INSPECT <n> to check`, then one line per finding marked `RISK`, `CHECK` or `NOTE`. `--json` prints the same as JSON.
+   - Exit `2` (`VAUBAN_INSPECT_RPC_DOWN`), `3` (`VAUBAN_INSPECT_BAD_VAULT`), `4` (`VAUBAN_INSPECT_NOT_VAUBAN`).
+   - It checks ETH limits and the allowlist against how the vault rules. It is not an audit of the contract.
+4. **Notify** with `./notify -f output/vauban-vault.md`. A sheet report, a ruling and an inspection notify every run. A watch notifies only when the output starts with `VAUBAN CHANGED`. Never call a channel API directly.
+5. **Log** to `memory/logs/YYYY-MM-DD.md` under `### vauban-vault`: `VAUBAN_STATUS <vault> rev=<n> frozen=<bool> held=<n>` or `VAUBAN_WATCH_CHANGED <n>` or `VAUBAN_WATCH_QUIET` or `VAUBAN_RULE <vault> <target> <pass|hold|refused:rampart>` or `VAUBAN_INSPECT <vault> <clear|n>`.
 
 ## Reading the output
 
