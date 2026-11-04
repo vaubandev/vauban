@@ -439,6 +439,58 @@ def rulings():
     done(img, "tweet-rulings.png")
 
 
+def sdk3_card():
+    W, H = 1600, 900
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    S = lambda *p: [v * SS for v in p]
+    mono, small = font(MONO, 21), font(MONO, 17)
+    bold = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 21)
+    dim = (160, 156, 138)
+    text(d, (96, 84), "PLATE VII  ·  SDK 0.3.0", small, OLIVE)
+    mark(d, 96, 128, 52, PAPER)
+    text(d, (166, 134), "VAUBAN", font(SERIF, 52, 500), PAPER)
+    text(d, (96, 232), "Read a vault's history.", font(SERIF, 54, 400), PAPER)
+    text(d, (96, 296), "Check its settings.", font(SERIF, 54, 400), FIRE)
+
+    # Code and output exactly as a fresh npm install printed them against the reference vault on 4663.
+    d.rectangle(S(96, 396, 960, 772), fill=(26, 27, 21), outline=(48, 49, 40), width=SS)
+    lines = (
+        ("await listRecord(pub, vault)", PAPER, mono),
+        ("  AgentSet, OwnershipTransferred", dim, mono),
+        ("", PAPER, mono),
+        ("await inspect(pub, vault)", PAPER, mono),
+        ("  info  eth-unset", OLIVE, bold),
+        ("  info  curtain-empty", OLIVE, bold),
+        ("", PAPER, mono),
+        ("reference vault 0xf9322f15…30e4097", dim, small),
+    )
+    for i, (ln, col, f) in enumerate(lines):
+        text(d, (128, 426 + i * 42), ln, f, col)
+
+    # What inspect flags: the rule codes in sdk/src/index.ts, worded as on vauban.works/table.
+    text(d, (1030, 404), "inspect flags", small, dim)
+    flags = (
+        ("RISK", "agent is also the owner", FIRE),
+        ("CHECK", "caps that cancel each other", PAPER),
+        ("CHECK", "a gate that can never hold", PAPER),
+        ("CHECK", "a call allowed on a wallet", PAPER),
+        ("CHECK", "token moves with no limits", PAPER),
+    )
+    tag = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 17)
+    for i, (lvl, what, col) in enumerate(flags):
+        y = 448 + i * 62
+        d.line(S(1030, y - 16, 1504, y - 16), fill=(60, 61, 50), width=SS)
+        text(d, (1030, y), lvl, tag, col)
+        text(d, (1120, y - 4), what, font(SERIF, 26, 400), PAPER)
+
+    text(d, (96, 812), "npm i @vaubanworks/sdk   ·   Read-only. Not an audit of the contract.", small, dim)
+    text(d, (W - 96, 812), "vauban.works", small, dim, anchor="ra")
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "tweet-sdk3.png")
+
+
 if __name__ == "__main__":
     avatar()
     banner()
