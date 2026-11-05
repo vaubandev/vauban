@@ -492,16 +492,10 @@ async function signDraft() {
     for (let i = 0; i < calls.length; i++) {
       const c = calls[i];
       dSay(`Step ${i + 1} of ${calls.length}: simulating…`, "hold");
-      let request;
-      try {
-        ({ request } = await pub.simulateContract({
-          account: me, address: vault, abi: vaubanVaultAbi,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          functionName: c.functionName, args: c.args as any,
-        }));
-      } catch (e) { toRefused(e); }
+      try { await pub.call({ account: me, to: vault, data: c.data }); }
+      catch (e) { toRefused(e); }
       dSay(`Step ${i + 1} of ${calls.length}: confirm in your wallet…`, "hold");
-      const hash: Hex = await wallet.writeContract(request!);
+      const hash: Hex = await wallet.sendTransaction({ to: vault, data: c.data });
       dSay(`Step ${i + 1} of ${calls.length}: waiting for block…`, "hold");
       const rcpt = await pub.waitForTransactionReceipt({ hash });
       if (rcpt.status !== "success") throw new Error(`Step ${i + 1} reverted on-chain: ${hash}`);

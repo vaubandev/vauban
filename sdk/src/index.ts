@@ -8,6 +8,7 @@ import {
   type WalletClient,
   BaseError,
   ContractFunctionRevertedError,
+  decodeErrorResult,
   decodeEventLog,
   defineChain,
   encodeFunctionData,
@@ -99,6 +100,16 @@ export function toRefused(err: unknown): never {
       const code = rev.data.errorName;
       const args = rev.data.args ?? [];
       throw new Refused(RAMPART[code] ?? "call", code, args, explain(code, args));
+    }
+    // a raw eth_call (no ABI attached) carries the revert bytes instead of a decoded error
+    const raw = err.walk((e) => typeof (e as { data?: unknown }).data === "string") as { data?: Hex } | null;
+    if (raw?.data && /^0x[0-9a-fA-F]{8}/.test(raw.data)) {
+      let d;
+      try { d = decodeErrorResult({ abi: vaubanVaultAbi, data: raw.data }); } catch { d = null; }
+      if (d) {
+        const args = d.args ?? [];
+        throw new Refused(RAMPART[d.errorName] ?? "call", d.errorName, args, explain(d.errorName, args));
+      }
     }
   }
   throw err;
@@ -442,12 +453,27 @@ export function draftSheet(now: Facts, draft: Draft, info: Map<string, { hasCode
   return { ...now, gateDelay: draft.gateDelay ?? now.gateDelay, eth, targets };
 }
 
-/** The owner transactions that turn the current sheet into `draft`, in the order they should be signed. */
-export function draftCalls(draft: Draft): { functionName: "setAllowed" | "setLimits" | "setGateDelay"; args: readonly unknown[] }[] {
-  const out: { functionName: "setAllowed" | "setLimits" | "setGateDelay"; args: readonly unknown[] }[] = [];
-  for (const l of draft.limits ?? []) out.push({ functionName: "setLimits", args: [l.asset, l.caps] });
-  if (draft.gateDelay !== undefined) out.push({ functionName: "setGateDelay", args: [draft.gateDelay] });
-  for (const a of draft.allow ?? []) if (a.selectors.length) out.push({ functionName: "setAllowed", args: [a.target, a.selectors, a.on] });
+export type DraftCall =
+  | { functionName: "setLimits"; args: readonly [Address, Caps]; data: Hex }
+  | { functionName: "setGateDelay"; args: readonly [bigint]; data: Hex }
+  | { functionName: "setAllowed"; args: readonly [Address, readonly Hex[], boolean]; data: Hex };
+
+/** The owner transactions that turn the current sheet into `draft`, in signing order. `data` is the calldata for the vault. */
+export function draftCalls(draft: Draft): DraftCall[] {
+  const out: DraftCall[] = [];
+  for (const l of draft.limits ?? []) {
+    const args = [l.asset, l.caps] as const;
+    out.push({ functionName: "setLimits", args, data: encodeFunctionData({ abi: vaubanVaultAbi, functionName: "setLimits", args }) });
+  }
+  if (draft.gateDelay !== undefined) {
+    const args = [draft.gateDelay] as const;
+    out.push({ functionName: "setGateDelay", args, data: encodeFunctionData({ abi: vaubanVaultAbi, functionName: "setGateDelay", args }) });
+  }
+  for (const a of draft.allow ?? []) {
+    if (!a.selectors.length) continue;
+    const args = [a.target, a.selectors, a.on] as const;
+    out.push({ functionName: "setAllowed", args, data: encodeFunctionData({ abi: vaubanVaultAbi, functionName: "setAllowed", args }) });
+  }
   return out;
 }
 

@@ -62,7 +62,26 @@ Also: `disallow`, `setGateDelay`, `unfreeze`, `cancel` (a held move), `withdraw`
 
 `readState(pub, vault)` returns owner, agent, frozen, gate delay, revision and balance. `listHeld(pub, vault, fromBlock)` returns the moves waiting at the gate. `listAllowed(pub, vault)` returns the curtain as it stands: each target with the selectors the agent may call, confirmed against `allowed()`. `listRecord(pub, vault, { times: true })` returns every event the vault has emitted, newest first.
 
-`inspect(pub, vault)` checks the vault's own settings and returns findings (`risk`, `warn` or `info`) for the ones that do not do what they look like: an agent that is also the owner, caps that cancel each other out, a gate that can never hold. It reads the chain only and is not an audit of the contract.
+`inspect(pub, vault)` checks the vault's own settings and returns findings (`risk`, `warn` or `info`) for the ones that do not do what they look like: an agent that is also the owner, caps that cancel each other out, a gate that can never hold. ETH and token limits are both checked, token amounts in the token's own units. It reads the chain only and is not an audit of the contract.
+
+## Check a change before you sign it
+
+`inspect` is `findings(await readFacts(pub, vault))`. `findings` is pure, so it can run on a sheet that does not exist yet:
+
+```ts
+import { readFacts, draftSheet, draftCalls, findings, NATIVE } from "@vaubanworks/sdk";
+import { parseEther } from "viem";
+
+const draft = {
+  limits: [{ asset: NATIVE, caps: { set: true, perTx: parseEther("0.1"), perHour: parseEther("0.3"), perDay: parseEther("1"), holdAbove: parseEther("0.1") } }],
+};
+const after = findings(draftSheet(await readFacts(pub, vault), draft, new Map()));
+// [{ level: "warn", code: "gate-unreachable", ... }]: fix the draft before anything is signed
+
+for (const c of draftCalls(draft)) await ownerWallet.sendTransaction({ to: vault, data: c.data });
+```
+
+For a target the vault has never seen, pass what `targetInfo(pub, target)` returns in the map (keyed by lowercase address), so code, symbol and decimals are known. After the calls land, `inspect` returns exactly what `findings` predicted.
 
 ## Deploying a vault
 

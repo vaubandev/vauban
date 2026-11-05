@@ -7,7 +7,7 @@ import { homedir } from "node:os";
 import { createPublicClient, createWalletClient, http, parseEther, toFunctionSelector, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanOwner, NATIVE, inspect, findings, readFacts, draftSheet, draftCalls, targetInfo, type Draft, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanOwner, NATIVE, Refused, toRefused, inspect, findings, readFacts, draftSheet, draftCalls, targetInfo, type Draft, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
 type F = { level: string; code: string; text: string };
@@ -138,13 +138,20 @@ test("a draft is checked before signing, and the chain agrees once it lands", { 
     for (const l of d.limits ?? []) if (l.asset !== NATIVE) info.set(l.asset.toLowerCase(), await targetInfo(pub, l.asset));
     const predicted = findings(draftSheet(now, d, info));
     for (const c of draftCalls(d)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await pub.waitForTransactionReceipt({ hash: await ow.writeContract({ address: vault, abi: vaubanVaultAbi, functionName: c.functionName, args: c.args as any }) });
+      await pub.waitForTransactionReceipt({ hash: await ow.sendTransaction({ to: vault, data: c.data }) });
     }
     assert.deepEqual(await inspect(pub, vault), predicted, "the draft check must predict what the chain says after signing");
   }
   // draft 1 set ETH caps that cancel out and nothing since has fixed them
   assert.deepEqual((await inspect(pub, vault)).map((x) => x.code), ["tx-over-hour", "gate-unreachable"]);
+});
+
+test("a draft step the vault refuses is named before anything is sent", async () => {
+  const { vault } = await deploy(AGENT.address, 21600n);
+  const [c] = draftCalls({ allow: [{ target: vault, selectors: [toFunctionSelector("buy()")], on: true }] });
+  // a stranger, and then the vault itself as target: both must come back as a named refusal, not a raw revert
+  await assert.rejects(pub.call({ account: AGENT.address, to: vault, data: c.data }).catch(toRefused), (e: unknown) => e instanceof Refused && e.code === "NotOwner");
+  await assert.rejects(pub.call({ account: OWNER.address, to: vault, data: c.data }).catch(toRefused), (e: unknown) => e instanceof Refused && e.code === "CurtainSelfCall");
 });
 
 test("the report says CLEAR or how many to check, and refuses a non-vault", async () => {
