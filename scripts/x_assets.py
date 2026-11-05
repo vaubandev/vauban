@@ -536,6 +536,23 @@ def sheet_card():
     done(img, "tweet-sheet.png")
 
 
+def article_banner():
+    # X Articles cover is 5:2 and is cropped a little on narrow screens: keep text left and away from edges.
+    W, H = 1500, 600
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    contours(d, W, H, (32, 33, 26), cx=W * 0.78, cy=H * 0.5)
+    fort(d, 1150, 300, 205, PAPER, (95, 96, 80))
+    mark(d, 110, 112, 54, PAPER)
+    text(d, (182, 118), "VAUBAN", font(SERIF, 50, 500), PAPER)
+    text(d, (112, 232), "Walls for an", font(SERIF, 74, 400), PAPER)
+    text(d, (112, 318), "AI agent's wallet.", font(SERIF, 74, 400), FIRE)
+    text(d, (114, 440), "DITCH  ·  CURTAIN  ·  GATE  ·  KEEP", font(MONO, 21), (160, 156, 138))
+    text(d, (114, 486), "vauban.works", font(MONO, 21), (160, 156, 138))
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "article-banner.png")
+
+
 if __name__ == "__main__":
     avatar()
     banner()
