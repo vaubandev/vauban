@@ -491,6 +491,51 @@ def sdk3_card():
     done(img, "tweet-sdk3.png")
 
 
+def sheet_card():
+    W, H = 1600, 900
+    img = canvas(W, H, PAPER)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (222, 215, 196))
+    S = lambda *p: [v * SS for v in p]
+    mono, small = font(MONO, 21), font(MONO, 17)
+    bold = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 17)
+    text(d, (96, 84), "VAUBAN.WORKS/TABLE  ·  DRAW THE SHEET", small, MUTED)
+    mark(d, 96, 128, 52, INK)
+    text(d, (166, 134), "VAUBAN", font(SERIF, 52, 500), INK)
+    text(d, (96, 232), "Draft the rules.", font(SERIF, 54, 400), INK)
+    text(d, (96, 296), "Checked before you sign.", font(SERIF, 54, 400), FIRE)
+
+    # Draft and finding exactly as the live page showed them for the reference vault on 4663.
+    d.rectangle(S(96, 396, 1010, 760), fill=(236, 230, 214), outline=INK, width=2 * SS)
+    text(d, (128, 422), "DRAFT", font(MONO, 15), MUTED)
+    text(d, (128, 452), "1. Limits for ETH: 0.1 / call · 0.3 / h", mono, INK)
+    text(d, (162, 486), "· 1 / day · hold above 0.1", mono, INK)
+    d.line(S(128, 536, 978, 536), fill=(196, 189, 168), width=SS)
+    text(d, (128, 556), "CHECK", bold, FIRE)
+    rows = ("Hold threshold 0.1 ETH is not below the per-call",
+            "limit 0.1 ETH, so nothing can ever be held:",
+            "larger moves are refused first.")
+    for i, ln in enumerate(rows):
+        text(d, (214, 554 + i * 34), ln, mono, INK)
+    text(d, (128, 692), "Fix it here, before a single transaction is sent.", small, MUTED)
+
+    steps = (("1", "Draft", "allow a function, set limits,", "set the gate"),
+             ("2", "Checked", "the same inspection the", "live vault gets"),
+             ("3", "Signed", "step by step, in your", "own wallet"))
+    for i, (n, head, l1, l2) in enumerate(steps):
+        y = 410 + i * 118
+        d.line(S(1080, y - 14, 1504, y - 14), fill=(196, 189, 168), width=SS)
+        text(d, (1080, y), n, font(SERIF, 44, 500), FIRE)
+        text(d, (1140, y + 2), head, font(SERIF, 32, 500), INK)
+        text(d, (1140, y + 46), l1, small, MUTED)
+        text(d, (1140, y + 70), l2, small, MUTED)
+
+    text(d, (96, 812), "Read from the chain. No keys held. Not audited.", small, MUTED)
+    text(d, (W - 96, 812), "vauban.works/table", small, MUTED, anchor="ra")
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=INK)
+    done(img, "tweet-sheet.png")
+
+
 if __name__ == "__main__":
     avatar()
     banner()
