@@ -1,6 +1,6 @@
 <!-- route: /table/ -->
 <!-- title: Owner's table — Vauban -->
-<!-- desc: Read any Vauban vault on Robinhood Chain: keep state, caps, spend today and moves held at the gate. Owners can freeze and drop the gate from their own wallet. -->
+<!-- desc: Read any Vauban vault on Robinhood Chain: keep state, caps, spend today and moves held at the gate. Owners can draw the sheet, checked before signing, freeze and drop the gate from their own wallet. -->
 <!-- plate: SHEET VI · OWNER'S TABLE -->
 <!-- scripts: /table.js -->
 <section class="phead">
@@ -10,7 +10,7 @@
       <p class="crumbs"><a href="/">General plan</a> / Owner's table</p>
       <p class="kicker">Sheet VI</p>
       <h1>The owner's table.<br><span class="ink">Read the fort, seal it if you must.</span></h1>
-      <p class="lede">Paste a vault address to read its state straight from Robinhood Chain. If your wallet is the owner, you can freeze the keep and drop the gate on held moves. Nothing here can move funds out.</p>
+      <p class="lede">Paste a vault address to read its state straight from Robinhood Chain. If your wallet is the owner, you can draw the sheet, checked before you sign, freeze the keep and drop the gate on held moves. Nothing here can move funds out.</p>
     </div>
     <div class="sheet">Source <b>on-chain</b><br>Writes <b>your wallet</b><br>Keys held <b>none</b></div>
   </div>
@@ -84,6 +84,34 @@
         </div>
         <div class="vrow"><button class="btn" type="submit">Rule</button><button class="btn ghost-d" id="rShare" type="button" hidden>Copy link</button></div>
         <p class="rverdict" id="rOut" role="status" aria-live="polite"></p>
+      </form>
+
+      <form class="vform rform" id="dForm">
+        <h2 class="disp" style="margin:0 0 6px">Draw the sheet</h2>
+        <p class="small rnote">Draft a change to the curtain, the limits or the gate. Inspection checks the draft before anything is signed; nothing is sent until you sign each step in your own wallet. Only the owner can sign.</p>
+        <div class="rgrid">
+          <label>Change
+            <select id="dKind">
+              <option value="allow">Allow a function on a target</option>
+              <option value="remove">Remove a function from a target</option>
+              <option value="limits">Set limits for ETH or a token</option>
+              <option value="gate">Set the gate delay</option>
+            </select>
+          </label>
+          <label data-for="allow remove">Target<input id="dTarget" placeholder="0x…" autocomplete="off" spellcheck="false"></label>
+          <label class="wide" data-for="allow remove">Function<input id="dSel" placeholder="buy()  ·  transfer(address,uint256)  ·  0xa6f2ae3a  ·  empty for a plain ETH send" autocomplete="off" spellcheck="false"></label>
+          <label data-for="limits">Asset<input id="dAsset" placeholder="ETH, or a token address" autocomplete="off" spellcheck="false"></label>
+          <label data-for="limits">Per call<input id="dTx" placeholder="0.1" inputmode="decimal" autocomplete="off"></label>
+          <label data-for="limits">Per hour<input id="dHour" placeholder="0.3" inputmode="decimal" autocomplete="off"></label>
+          <label data-for="limits">Per day<input id="dDay" placeholder="1" inputmode="decimal" autocomplete="off"></label>
+          <label data-for="limits">Hold above<input id="dHold" placeholder="0.05 (0 = never hold)" inputmode="decimal" autocomplete="off"></label>
+          <label data-for="gate">Delay (hours)<input id="dDelay" placeholder="6" inputmode="decimal" autocomplete="off"></label>
+        </div>
+        <div class="vrow"><button class="btn ghost-d" type="submit">Add to draft</button><button class="btn ghost-d" id="dClear" type="button" hidden>Clear draft</button></div>
+        <p class="rverdict" id="dOut" role="status" aria-live="polite"></p>
+        <ol class="dlist" id="dList"></ol>
+        <ul class="ilist" id="dFind" hidden></ul>
+        <div class="vrow" id="dSignRow" hidden><button class="btn" id="dSign" type="button">Sign the draft</button></div>
       </form>
 
       <div class="heldhead">

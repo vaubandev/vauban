@@ -1,9 +1,13 @@
 // Owner's table: browser bundle. Reads a vault over RPC; writes only through the user's own injected wallet.
 import {
   type Address, type EIP1193Provider, type Hex,
-  createPublicClient, createWalletClient, custom, formatEther, getAddress, http, isAddress, isHex, parseEther,
+  createPublicClient, createWalletClient, custom, formatEther, getAddress, http, isAddress, isHex, parseEther, parseUnits, toFunctionSelector,
 } from "viem";
-import { type Finding, type HeldMove, type Listing, type RecordEntry, robinhoodChain, readState, inspect, listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE } from "./index.ts";
+import {
+  type Draft, type Facts, type Finding, type HeldMove, type Listing, type RecordEntry,
+  robinhoodChain, readState, readFacts, findings, draftSheet, draftCalls, targetInfo,
+  listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE,
+} from "./index.ts";
 
 declare global {
   interface Window { ethereum?: EIP1193Provider }
@@ -38,15 +42,21 @@ async function load() {
   try {
     const code = await pub.getCode({ address: vault });
     if (!code || code === "0x") throw new Error("No contract at this address on Robinhood Chain.");
-    const [s, eth, sp, held, allow, rec, found] = await Promise.all([
+    const [s, eth, sp, held, allow, rec, fx] = await Promise.all([
       readState(pub, vault),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "limits", args: [NATIVE] }),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "spent", args: [NATIVE] }),
       fetchHeld(),
       listAllowed(pub, vault),
       listRecord(pub, vault, { times: true }),
-      inspect(pub, vault),
+      readFacts(pub, vault),
     ]);
+    const found = findings(fx);
+    // decimals for every token the record mentions, so its limits read in the token's units
+    const assets = rec.filter((r) => r.event === "LimitsSet" && r.args.asset !== NATIVE).map((r) => String(r.args.asset));
+    for (const t of fx.targets) info.set(t.target.toLowerCase(), t);
+    await Promise.all([...new Set(assets.map((x) => x.toLowerCase()))].filter((x) => !info.has(x))
+      .map(async (x) => info.set(x, await targetInfo(pub, getAddress(x)))));
     // a newer load started while we were reading; let it render
     if (mine !== seq) return;
 
@@ -76,6 +86,9 @@ async function load() {
     renderAllowed(allow);
     renderRecord(rec);
     renderFindings(found);
+    facts = fx;
+    owner = s.owner;
+    renderDraft();
     $("tBody").hidden = false;
     status("Up to date · " + new Date().toLocaleTimeString(), "ok");
   } catch (e) {
@@ -141,9 +154,17 @@ function describe(e: RecordEntry): [string, string] {
     case "Cancelled": return ["owner", `Owner dropped a held move ${short(String(a.id))}`];
     case "Frozen": return [a.frozen ? "refused" : "owner", a.frozen ? "Keep sealed: the agent can do nothing" : "Keep opened again"];
     case "Listed": return ["owner", `${a.ok ? "Allowed" : "Removed"} ${sel(a.selector)} on ${short(String(a.target))}`];
-    case "LimitsSet": return ["owner", a.set
-      ? `Limits for ${a.asset === NATIVE ? "ETH" : short(String(a.asset))}: ${formatEther(a.perTx as bigint)} / call · ${formatEther(a.perHour as bigint)} / h · ${formatEther(a.perDay as bigint)} / day · hold above ${formatEther(a.holdAbove as bigint)}`
-      : `Limits removed for ${a.asset === NATIVE ? "ETH" : short(String(a.asset))}: it cannot move`];
+    case "LimitsSet": {
+      const asset = String(a.asset);
+      const i = info.get(asset.toLowerCase());
+      // token amounts in the token's own units; without its decimals, show raw units rather than guess 18
+      const dec = asset === NATIVE ? 18 : i?.decimals;
+      const unit = asset === NATIVE ? "ETH" : i?.symbol ?? short(asset);
+      const f = (v: unknown) => (dec === undefined ? `${v} units` : formatUnitsSafe(v as bigint, dec));
+      return ["owner", a.set
+        ? `Limits for ${unit}: ${f(a.perTx)} / call · ${f(a.perHour)} / h · ${f(a.perDay)} / day · hold above ${f(a.holdAbove)}`
+        : `Limits removed for ${unit}: it cannot move`];
+    }
     case "PolicyRevised": return ["rev", `Rules now at revision ${a.revision}`];
     case "AgentSet": return ["owner", `Agent set to ${short(String(a.agent))}`];
     case "OwnershipTransferStarted": return ["owner", `Owner offered the vault to ${short(String(a.to))}`];
@@ -154,12 +175,14 @@ function describe(e: RecordEntry): [string, string] {
 
 const LEVEL = { risk: "Risk", warn: "Check", info: "Note" } as const;
 
-function renderFindings(found: Finding[]) {
-  const list = $("iList");
+function renderFindings(found: Finding[], listId = "iList", countId: string | null = "iCount") {
+  const list = $(listId);
   list.replaceChildren();
   const serious = found.filter((x) => x.level !== "info").length;
-  setText("iCount", String(serious));
-  $("iCount").dataset.kind = serious ? "warn" : "ok";
+  if (countId) {
+    setText(countId, String(serious));
+    $(countId).dataset.kind = serious ? "warn" : "ok";
+  }
   const rows = serious ? found : [{ level: "ok", text: "Nothing to warn about: every setting does what it looks like." }, ...found];
   for (const x of rows) {
     const li = document.createElement("li");
@@ -281,6 +304,8 @@ function open(addr: string, keepRule = false): Promise<void> {
   if (!keepRule) RULE_KEYS.forEach((k) => qs.delete(k));
   history.replaceState(null, "", "?" + qs.toString());
   $("rShare").hidden = true;
+  draft = {};
+  dSay("");
   return load();
 }
 
@@ -332,6 +357,176 @@ $<HTMLFormElement>("rForm").addEventListener("submit", (e) => {
   e.preventDefault();
   rule();
 });
+
+// ---- Draw the sheet: a local draft, checked with the same findings() before anything is signed
+
+let facts: Facts | null = null;
+let owner: Address | null = null;
+let draft: Draft = {};
+const info = new Map<string, Awaited<ReturnType<typeof targetInfo>>>();
+
+function dSay(text: string, kind: "pass" | "hold" | "refused" | "err" | "" = "") {
+  const el = $("dOut");
+  el.textContent = text;
+  el.dataset.kind = kind;
+}
+
+function showFields() {
+  const kind = $<HTMLSelectElement>("dKind").value;
+  document.querySelectorAll<HTMLElement>("#dForm [data-for]").forEach((el) => {
+    el.hidden = !el.dataset.for!.split(" ").includes(kind);
+  });
+}
+
+function parseSelector(raw: string): Hex {
+  const s = raw.trim();
+  if (!s) return "0x00000000";
+  if (/^0x[0-9a-fA-F]{8}$/.test(s)) return s.toLowerCase() as Hex;
+  // a signature such as buy() or transfer(address,uint256): no spaces, one pair of brackets
+  if (/^[A-Za-z_][A-Za-z0-9_]*\([A-Za-z0-9_,[\]]*\)$/.test(s)) return toFunctionSelector(s);
+  throw new Error("Function must be a signature like buy() or a 4-byte selector like 0xa6f2ae3a.");
+}
+
+function amountIn(raw: string, decimals: number, what: string): bigint {
+  const s = raw.trim();
+  if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(`${what} must be a plain number.`);
+  return parseUnits(s, decimals);
+}
+
+async function addToDraft() {
+  if (!facts || !vault) return;
+  const kind = $<HTMLSelectElement>("dKind").value;
+  try {
+    if (kind === "allow" || kind === "remove") {
+      const t = $<HTMLInputElement>("dTarget").value.trim();
+      if (!isAddress(t)) throw new Error("Target is not a valid address.");
+      if (getAddress(t) === vault) throw new Error("The vault refuses calls to itself; that target can never be allowed.");
+      const sel = parseSelector($<HTMLInputElement>("dSel").value);
+      if (!info.has(t.toLowerCase())) info.set(t.toLowerCase(), await targetInfo(pub, getAddress(t)));
+      (draft.allow ??= []).push({ target: getAddress(t), selectors: [sel], on: kind === "allow" });
+    } else if (kind === "limits") {
+      const raw = $<HTMLInputElement>("dAsset").value.trim();
+      const asset = !raw || raw.toUpperCase() === "ETH" ? NATIVE : raw;
+      if (!isAddress(asset)) throw new Error("Asset must be ETH or a token address.");
+      let dec = 18;
+      if (asset !== NATIVE) {
+        const i = await targetInfo(pub, getAddress(asset));
+        if (!i.hasCode) throw new Error("That asset address has no contract code; it is not a token.");
+        info.set(asset.toLowerCase(), i);
+        dec = i.decimals;
+      }
+      const caps = {
+        set: true,
+        perTx: amountIn($<HTMLInputElement>("dTx").value, dec, "Per call"),
+        perHour: amountIn($<HTMLInputElement>("dHour").value, dec, "Per hour"),
+        perDay: amountIn($<HTMLInputElement>("dDay").value, dec, "Per day"),
+        holdAbove: amountIn($<HTMLInputElement>("dHold").value || "0", dec, "Hold above"),
+      };
+      const a = asset === NATIVE ? NATIVE : getAddress(asset);
+      draft.limits = [...(draft.limits ?? []).filter((l) => l.asset !== a), { asset: a, caps }];
+    } else {
+      const h = $<HTMLInputElement>("dDelay").value.trim();
+      if (!/^\d+(\.\d+)?$/.test(h) || Number(h) > 168) throw new Error("Delay must be a number of hours, at most 168 (7 days).");
+      draft.gateDelay = BigInt(Math.round(Number(h) * 3600));
+    }
+    dSay("");
+    renderDraft();
+  } catch (e) {
+    dSay((e as Error).message.split("\n")[0], "err");
+  }
+}
+
+function describeStep(c: ReturnType<typeof draftCalls>[number]): string {
+  const [a, b, on] = c.args as [string, unknown, unknown];
+  if (c.functionName === "setGateDelay") return `Gate delay: ${Number(a) / 3600} h`;
+  if (c.functionName === "setAllowed") {
+    const sels = (b as Hex[]).map((x) => (x === "0x00000000" ? "plain ETH send" : x)).join(", ");
+    return `${on ? "Allow" : "Remove"} ${sels} on ${short(a)}`;
+  }
+  const k = b as { perTx: bigint; perHour: bigint; perDay: bigint; holdAbove: bigint };
+  const i = info.get(a.toLowerCase());
+  const dec = a === NATIVE ? 18 : i?.decimals ?? 18;
+  const unit = a === NATIVE ? "ETH" : i?.symbol ?? short(a);
+  const f = (v: bigint) => formatUnitsSafe(v, dec);
+  return `Limits for ${unit}: ${f(k.perTx)} / call · ${f(k.perHour)} / h · ${f(k.perDay)} / day · hold above ${f(k.holdAbove)}`;
+}
+
+function formatUnitsSafe(v: bigint, dec: number) {
+  const base = 10n ** BigInt(dec);
+  const frac = (v % base).toString().padStart(dec, "0").replace(/0+$/, "");
+  return frac ? `${v / base}.${frac}` : `${v / base}`;
+}
+
+function renderDraft() {
+  const calls = draftCalls(draft);
+  const list = $("dList");
+  list.replaceChildren();
+  for (const c of calls) {
+    const li = document.createElement("li");
+    li.textContent = describeStep(c);
+    list.append(li);
+  }
+  const empty = !calls.length;
+  $("dClear").hidden = empty;
+  $("dFind").hidden = empty;
+  const isOwner = !!me && !!owner && getAddress(me) === getAddress(owner);
+  $("dSignRow").hidden = empty || !isOwner;
+  if (empty || !facts) return;
+  const after = findings(draftSheet(facts, draft, info));
+  renderFindings(after, "dFind", null);
+  if (!isOwner) dSay(me ? "Checked. Only the owner can sign this draft; your wallet is not the owner." : "Checked. Connect the owner's wallet to sign it.", "hold");
+  else if (after.some((x) => x.level !== "info")) dSay("Checked: this draft leaves something to fix. You can still sign it, step by step.", "refused");
+  else dSay(`Checked: nothing to warn about. ${calls.length} step${calls.length > 1 ? "s" : ""} to sign.`, "pass");
+}
+
+async function signDraft() {
+  if (!window.ethereum || !me || !vault) return;
+  const calls = draftCalls(draft);
+  const wallet = createWalletClient({ chain: robinhoodChain, transport: custom(window.ethereum), account: me });
+  let landed = 0;
+  try {
+    if ((await wallet.getChainId()) !== robinhoodChain.id) {
+      try { await wallet.switchChain({ id: robinhoodChain.id }); }
+      catch { await wallet.addChain({ chain: robinhoodChain }); }
+    }
+    for (let i = 0; i < calls.length; i++) {
+      const c = calls[i];
+      dSay(`Step ${i + 1} of ${calls.length}: simulating…`, "hold");
+      let request;
+      try {
+        ({ request } = await pub.simulateContract({
+          account: me, address: vault, abi: vaubanVaultAbi,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          functionName: c.functionName, args: c.args as any,
+        }));
+      } catch (e) { toRefused(e); }
+      dSay(`Step ${i + 1} of ${calls.length}: confirm in your wallet…`, "hold");
+      const hash: Hex = await wallet.writeContract(request!);
+      dSay(`Step ${i + 1} of ${calls.length}: waiting for block…`, "hold");
+      const rcpt = await pub.waitForTransactionReceipt({ hash });
+      if (rcpt.status !== "success") throw new Error(`Step ${i + 1} reverted on-chain: ${hash}`);
+      landed++;
+    }
+    draft = {};
+    dSay(`Signed: ${calls.length} step${calls.length > 1 ? "s" : ""} landed.`, "pass");
+    await load();
+  } catch (e) {
+    const why = e instanceof Refused ? e.message : (e as Error).message.split("\n")[0];
+    // landed steps stay landed; drop the draft so nothing is signed twice, and read the new sheet
+    if (landed) draft = {};
+    await load();
+    dSay(landed ? `${landed} of ${calls.length} steps landed, then: ${why} The draft was cleared; the sheet above is what stands now.` : why, "err");
+  }
+}
+
+$("dKind").addEventListener("change", showFields);
+$<HTMLFormElement>("dForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  addToDraft();
+});
+$("dClear").addEventListener("click", () => { draft = {}; dSay(""); renderDraft(); });
+$("dSign").addEventListener("click", signDraft);
+showFields();
 
 $("rShare").addEventListener("click", async () => {
   const btn = $("rShare");

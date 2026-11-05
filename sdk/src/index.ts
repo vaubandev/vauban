@@ -12,6 +12,7 @@ import {
   defineChain,
   encodeFunctionData,
   formatEther,
+  formatUnits,
   parseAbi,
   zeroAddress,
   zeroHash,
@@ -301,64 +302,153 @@ export type Finding = { level: "risk" | "warn" | "info"; code: string; text: str
 const TOKEN_MOVES = new Set(["0xa9059cbb", "0x23b872dd", "0x095ea7b3", "0x39509351"]);
 const PLAIN_SEL = "0x00000000";
 
+export type CapSheet = { perTx: bigint; perHour: bigint; perDay: bigint; holdAbove: bigint };
+export type Caps = CapSheet & { set: boolean };
+export type TargetFacts = { target: Address; selectors: Hex[]; hasCode: boolean; caps: Caps; symbol: string | null; decimals: number };
+/** Everything inspection looks at. Read from the chain by readFacts(), or built from a draft by draftSheet(). */
+export type Facts = {
+  owner: Address; agent: Address; pendingOwner: Address; frozen: boolean; gateDelay: bigint;
+  eth: Caps; targets: TargetFacts[];
+};
+
+/** Limit findings for one asset. ETH keeps its original codes; tokens get the same checks prefixed "token-". */
+function capFindings(c: CapSheet, label: string, fmt: (v: bigint) => string, token: boolean): Finding[] {
+  const f: Finding[] = [];
+  const code = (k: string) => (token ? "token-" + k : k);
+  if (c.perDay === 0n || c.perTx === 0n)
+    f.push({ level: "info", code: token ? "token-zero" : "eth-zero", text: `A ${label} limit is 0: no ${label} can move.` });
+  if (c.perTx > c.perHour)
+    f.push({ level: "warn", code: code("tx-over-hour"), text: `Per-call limit ${fmt(c.perTx)} is above the hourly ${fmt(c.perHour)}; the real per-call limit is ${fmt(c.perHour)}.` });
+  if (c.perHour > c.perDay)
+    f.push({ level: "warn", code: code("hour-over-day"), text: `Hourly limit ${fmt(c.perHour)} is above the daily ${fmt(c.perDay)}; the real hourly limit is ${fmt(c.perDay)}.` });
+  if (c.holdAbove === 0n)
+    f.push({ level: "warn", code: code("gate-off"), text: `No hold threshold: every allowed ${label} move lands at once, nothing waits at the gate.` });
+  else if (c.holdAbove >= c.perTx)
+    f.push({ level: "warn", code: code("gate-unreachable"), text: `Hold threshold ${fmt(c.holdAbove)} is not below the per-call limit ${fmt(c.perTx)}, so nothing can ever be held: larger moves are refused first.` });
+  return f;
+}
+
+// the contract checks caps before the gate, so a hold line at or above perTx never holds anything
+const gateCanHold = (c: CapSheet) => c.holdAbove !== 0n && c.holdAbove < c.perTx;
+
 /**
  * Reads a vault's own settings and reports the ones that do not do what an owner would expect.
  * Every rule mirrors the contract's ruling order: keep, curtain, ditch, gate.
  */
 export async function inspect(pub: PublicClient, vault: Address): Promise<Finding[]> {
+  return findings(await readFacts(pub, vault));
+}
+
+/** Pure: the same rules for a live vault or a draft that has not been signed yet. */
+export function findings(v: Facts): Finding[] {
+  const f: Finding[] = [];
+  if (v.owner.toLowerCase() === v.agent.toLowerCase())
+    f.push({ level: "risk", code: "owner-is-agent", text: "The agent is also the owner, so it can rewrite its own rules. Give the agent its own key." });
+  if (v.pendingOwner !== zeroAddress)
+    f.push({ level: "warn", code: "pending-owner", text: `Ownership is offered to ${v.pendingOwner} and not yet accepted. Until it is, the current owner still holds the vault.` });
+  if (v.frozen)
+    f.push({ level: "info", code: "sealed", text: "The keep is sealed: the agent can do nothing until the owner opens it." });
+
+  if (!v.eth.set) f.push({ level: "info", code: "eth-unset", text: "No ETH limits: any call that sends ETH is refused." });
+  else f.push(...capFindings(v.eth, "ETH", (x) => formatEther(x) + " ETH", false));
+
+  const later: Finding[] = [];
+  let anyGate = v.eth.set && gateCanHold(v.eth);
+  for (const t of v.targets) {
+    const calls = t.selectors.filter((x) => x !== PLAIN_SEL);
+    if (!t.hasCode && calls.length)
+      later.push({ level: "warn", code: "eoa-target", text: `${t.target} has no contract code, yet ${calls.join(", ")} is allowed on it. A call there only sends ETH.` });
+    const moves = t.selectors.filter((x) => TOKEN_MOVES.has(x));
+    if (!moves.length) continue;
+    if (!t.caps.set) {
+      later.push({ level: "warn", code: "token-unset", text: `Token moves (${moves.join(", ")}) are allowed on ${t.target}, but it has no limits, so any amount above 0 is refused.` });
+      continue;
+    }
+    const label = t.symbol ?? t.target;
+    later.push(...capFindings(t.caps, label, (x) => `${formatUnits(x, t.decimals)} ${label}`, true));
+    anyGate ||= gateCanHold(t.caps);
+  }
+  if (anyGate && v.gateDelay === 0n)
+    f.push({ level: "warn", code: "gate-instant", text: "Gate delay is 0: held moves can be released at once, the owner has no time to cancel." });
+  f.push(...later);
+  if (!v.targets.length)
+    f.push({ level: "info", code: "curtain-empty", text: "Nothing is allowed yet: the agent can call nothing." });
+  return f;
+}
+
+const erc20Meta = parseAbi(["function symbol() view returns (string)", "function decimals() view returns (uint8)"]);
+const capsOf = (l: readonly [boolean, bigint, bigint, bigint, bigint]): Caps =>
+  ({ set: l[0], perTx: l[1], perHour: l[2], perDay: l[3], holdAbove: l[4] });
+
+/** What a target is on chain: code, symbol, decimals. Read once per address. */
+export async function targetInfo(pub: PublicClient, target: Address) {
+  const [code, symbol, decimals] = await Promise.all([
+    pub.getCode({ address: target }),
+    pub.readContract({ address: target, abi: erc20Meta, functionName: "symbol" }).catch(() => null),
+    pub.readContract({ address: target, abi: erc20Meta, functionName: "decimals" }).then(Number).catch(() => 18),
+  ]);
+  return { hasCode: !!code && code !== "0x", symbol, decimals };
+}
+
+export async function readFacts(pub: PublicClient, vault: Address): Promise<Facts> {
   const base = { address: vault, abi: vaubanVaultAbi } as const;
-  const [s, pending, eth, allow] = await Promise.all([
+  const [s, pendingOwner, eth, allow] = await Promise.all([
     readState(pub, vault),
     pub.readContract({ ...base, functionName: "pendingOwner" }),
     pub.readContract({ ...base, functionName: "limits", args: [NATIVE] }),
     listAllowed(pub, vault),
   ]);
-  const f: Finding[] = [];
-  const e = (v: bigint) => formatEther(v) + " ETH";
+  const targets = await Promise.all(allow.map(async (l) => {
+    const [info, lim] = await Promise.all([
+      targetInfo(pub, l.target),
+      pub.readContract({ ...base, functionName: "limits", args: [l.target] }),
+    ]);
+    return { target: l.target, selectors: l.selectors, ...info, caps: capsOf(lim) };
+  }));
+  return { owner: s.owner, agent: s.agent, pendingOwner, frozen: s.frozen, gateDelay: s.gateDelay, eth: capsOf(eth), targets };
+}
 
-  if (s.owner.toLowerCase() === s.agent.toLowerCase())
-    f.push({ level: "risk", code: "owner-is-agent", text: "The agent is also the owner, so it can rewrite its own rules. Give the agent its own key." });
-  if (pending !== zeroAddress)
-    f.push({ level: "warn", code: "pending-owner", text: `Ownership is offered to ${pending} and not yet accepted. Until it is, the current owner still holds the vault.` });
-  if (s.frozen)
-    f.push({ level: "info", code: "sealed", text: "The keep is sealed: the agent can do nothing until the owner opens it." });
+export type Draft = {
+  gateDelay?: bigint;
+  allow?: { target: Address; selectors: Hex[]; on: boolean }[];
+  limits?: { asset: Address; caps: Caps }[];
+};
 
-  const [set, perTx, perHour, perDay, holdAbove] = eth;
-  if (!set) {
-    f.push({ level: "info", code: "eth-unset", text: "No ETH limits: any call that sends ETH is refused." });
-  } else {
-    if (perDay === 0n || perTx === 0n)
-      f.push({ level: "info", code: "eth-zero", text: "An ETH limit is 0: no ETH can move." });
-    if (perTx > perHour)
-      f.push({ level: "warn", code: "tx-over-hour", text: `Per-call limit ${e(perTx)} is above the hourly ${e(perHour)}; the real per-call limit is ${e(perHour)}.` });
-    if (perHour > perDay)
-      f.push({ level: "warn", code: "hour-over-day", text: `Hourly limit ${e(perHour)} is above the daily ${e(perDay)}; the real hourly limit is ${e(perDay)}.` });
-    if (holdAbove === 0n)
-      f.push({ level: "warn", code: "gate-off", text: "No hold threshold: every allowed ETH move lands at once, nothing waits at the gate." });
-    else if (holdAbove >= perTx)
-      f.push({ level: "warn", code: "gate-unreachable", text: `Hold threshold ${e(holdAbove)} is not below the per-call limit ${e(perTx)}, so nothing can ever be held: larger moves are refused first.` });
-    else if (s.gateDelay === 0n)
-      f.push({ level: "warn", code: "gate-instant", text: "Gate delay is 0: held moves can be released at once, the owner has no time to cancel." });
+/** The vault's facts as they would stand after `draft` lands. Same shape inspection reads. */
+export function draftSheet(now: Facts, draft: Draft, info: Map<string, { hasCode: boolean; symbol: string | null; decimals: number }>): Facts {
+  const k = (a: string) => a.toLowerCase();
+  const sel = new Map(now.targets.map((t) => [k(t.target), new Set(t.selectors)]));
+  const caps = new Map(now.targets.map((t) => [k(t.target), t.caps]));
+  let eth = now.eth;
+  for (const a of draft.allow ?? []) {
+    const s = sel.get(k(a.target)) ?? new Set<Hex>();
+    a.selectors.forEach((x) => (a.on ? s.add(x) : s.delete(x)));
+    sel.set(k(a.target), s);
   }
+  for (const l of draft.limits ?? []) {
+    if (l.asset === NATIVE) eth = l.caps;
+    else caps.set(k(l.asset), l.caps);
+  }
+  const unset: Caps = { set: false, perTx: 0n, perHour: 0n, perDay: 0n, holdAbove: 0n };
+  const byAddr = new Map(now.targets.map((t) => [k(t.target), t.target]));
+  for (const a of draft.allow ?? []) if (!byAddr.has(k(a.target))) byAddr.set(k(a.target), a.target);
+  const targets: TargetFacts[] = [];
+  for (const [key, s] of sel) {
+    if (!s.size) continue;
+    const known = now.targets.find((t) => k(t.target) === key);
+    const i = info.get(key) ?? known ?? { hasCode: true, symbol: null, decimals: 18 };
+    targets.push({ target: byAddr.get(key)!, selectors: [...s].sort(), hasCode: i.hasCode, symbol: i.symbol, decimals: i.decimals, caps: caps.get(key) ?? unset });
+  }
+  return { ...now, gateDelay: draft.gateDelay ?? now.gateDelay, eth, targets };
+}
 
-  const targets = [...new Set(allow.map((l) => l.target))];
-  const [codes, tokenLimits] = await Promise.all([
-    Promise.all(targets.map((t) => pub.getCode({ address: t }))),
-    Promise.all(targets.map((t) => pub.readContract({ ...base, functionName: "limits", args: [t] }))),
-  ]);
-  allow.forEach((l) => {
-    const i = targets.indexOf(l.target);
-    const hasCode = !!codes[i] && codes[i] !== "0x";
-    const calls = l.selectors.filter((x) => x !== PLAIN_SEL);
-    if (!hasCode && calls.length)
-      f.push({ level: "warn", code: "eoa-target", text: `${l.target} has no contract code, yet ${calls.join(", ")} is allowed on it. A call there only sends ETH.` });
-    const moves = l.selectors.filter((x) => TOKEN_MOVES.has(x));
-    if (moves.length && !tokenLimits[i][0])
-      f.push({ level: "warn", code: "token-unset", text: `Token moves (${moves.join(", ")}) are allowed on ${l.target}, but it has no limits, so any amount above 0 is refused.` });
-  });
-  if (!allow.length)
-    f.push({ level: "info", code: "curtain-empty", text: "Nothing is allowed yet: the agent can call nothing." });
-  return f;
+/** The owner transactions that turn the current sheet into `draft`, in the order they should be signed. */
+export function draftCalls(draft: Draft): { functionName: "setAllowed" | "setLimits" | "setGateDelay"; args: readonly unknown[] }[] {
+  const out: { functionName: "setAllowed" | "setLimits" | "setGateDelay"; args: readonly unknown[] }[] = [];
+  for (const l of draft.limits ?? []) out.push({ functionName: "setLimits", args: [l.asset, l.caps] });
+  if (draft.gateDelay !== undefined) out.push({ functionName: "setGateDelay", args: [draft.gateDelay] });
+  for (const a of draft.allow ?? []) if (a.selectors.length) out.push({ functionName: "setAllowed", args: [a.target, a.selectors, a.on] });
+  return out;
 }
 
 export type RecordEntry = { event: string; args: Record<string, unknown>; block: bigint; logIndex: number; tx: Hex; time?: Date };

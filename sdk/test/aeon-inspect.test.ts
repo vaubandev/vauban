@@ -2,12 +2,12 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { createPublicClient, createWalletClient, http, parseEther, toFunctionSelector, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanOwner, NATIVE, inspect, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanOwner, NATIVE, inspect, findings, readFacts, draftSheet, draftCalls, targetInfo, type Draft, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
 type F = { level: string; code: string; text: string };
@@ -29,6 +29,12 @@ const ow = createWalletClient({ chain: foundry, transport, account: OWNER });
 
 let anvil: ChildProcess;
 let router: Address;
+let token: Address;
+
+const MOCK = new URL("../../contracts/out/Mocks.sol/MockToken.json", import.meta.url);
+const tokenSkip = existsSync(MOCK) ? false : "run `forge build` in contracts/ first";
+const tx = toFunctionSelector("transfer(address,uint256)");
+const usd = (n: string) => BigInt(Math.round(Number(n) * 1e6));
 
 before(async () => {
   process.env.VAUBAN_CHAIN_ID = String(foundry.id);
@@ -36,6 +42,10 @@ before(async () => {
   anvil = spawn(existsSync(local) ? local : "anvil", ["--port", String(PORT), "--silent"], { stdio: "ignore" });
   for (let i = 0; i < 50; i++) { try { await pub.getBlockNumber(); break; } catch { await new Promise((r) => setTimeout(r, 100)); } }
   router = (await pub.waitForTransactionReceipt({ hash: await ow.sendTransaction({ data: "0x6001600c60003960016000f300" as Hex }) })).contractAddress!;
+  if (!tokenSkip) {
+    const bc = JSON.parse(readFileSync(MOCK, "utf8")).bytecode.object as Hex;
+    token = (await pub.waitForTransactionReceipt({ hash: await ow.sendTransaction({ data: bc }) })).contractAddress!;
+  }
 });
 after(() => { anvil?.kill(); delete process.env.VAUBAN_CHAIN_ID; });
 
@@ -85,6 +95,56 @@ test("gate settings, removals and a freeze agree too", async () => {
   await owner.disallow(router, [toFunctionSelector("buy()")]);
   await owner.freeze();
   assert.deepEqual(await same(vault), ["sealed", "gate-instant", "curtain-empty"]);
+});
+
+test("token limits get the same checks as ETH, in the token's own units", { skip: tokenSkip }, async () => {
+  const { vault, owner } = await deploy(AGENT.address, 21600n);
+  await owner.setLimits(NATIVE, { perTx: parseEther("0.1"), perHour: parseEther("0.3"), perDay: parseEther("1"), holdAbove: parseEther("0.05") });
+  await owner.allow(token, [tx]);
+  await owner.setLimits(token, { perTx: usd("500"), perHour: usd("200"), perDay: usd("100"), holdAbove: 0n });
+  assert.deepEqual(await same(vault), ["token-tx-over-hour", "token-hour-over-day", "token-gate-off"]);
+  const f = await inspect(pub, vault);
+  assert.equal(f[0].text, "Per-call limit 500 MOCK is above the hourly 200 MOCK; the real per-call limit is 200 MOCK.");
+
+  await owner.setLimits(token, { perTx: usd("100"), perHour: usd("300"), perDay: usd("1000"), holdAbove: usd("100") });
+  assert.deepEqual(await same(vault), ["token-gate-unreachable"]);
+  await owner.setLimits(token, { perTx: usd("100"), perHour: usd("300"), perDay: usd("1000"), holdAbove: usd("50") });
+  assert.deepEqual(await same(vault), []);
+  await owner.setLimits(token, { perTx: 0n, perHour: 0n, perDay: 0n, holdAbove: 0n });
+  assert.deepEqual(await same(vault), ["token-zero", "token-gate-off"]);
+});
+
+test("a token gate alone is enough to make a 0 delay matter", { skip: tokenSkip }, async () => {
+  const { vault, owner } = await deploy(AGENT.address, 0n);
+  await owner.allow(token, [tx]);
+  await owner.setLimits(token, { perTx: usd("100"), perHour: usd("300"), perDay: usd("1000"), holdAbove: usd("50") });
+  assert.deepEqual(await same(vault), ["eth-unset", "gate-instant"]);
+});
+
+test("a draft is checked before signing, and the chain agrees once it lands", { skip: tokenSkip }, async () => {
+  const { vault, owner } = await deploy(AGENT.address, 21600n);
+  await owner.allow(router, [toFunctionSelector("buy()")]);
+  const drafts: Draft[] = [
+    { allow: [{ target: WALLET, selectors: [toFunctionSelector("buy()")], on: true }],
+      limits: [{ asset: NATIVE, caps: { set: true, perTx: parseEther("1"), perHour: parseEther("0.5"), perDay: parseEther("2"), holdAbove: parseEther("1") } }] },
+    { gateDelay: 0n, allow: [{ target: token, selectors: [tx], on: true }, { target: WALLET, selectors: [toFunctionSelector("buy()")], on: false }],
+      limits: [{ asset: token, caps: { set: true, perTx: usd("100"), perHour: usd("300"), perDay: usd("1000"), holdAbove: usd("50") } }] },
+    { gateDelay: 3600n, allow: [{ target: router, selectors: [toFunctionSelector("buy()")], on: false }] },
+  ];
+  for (const d of drafts) {
+    const now = await readFacts(pub, vault);
+    const info = new Map<string, Awaited<ReturnType<typeof targetInfo>>>();
+    for (const a of d.allow ?? []) info.set(a.target.toLowerCase(), await targetInfo(pub, a.target));
+    for (const l of d.limits ?? []) if (l.asset !== NATIVE) info.set(l.asset.toLowerCase(), await targetInfo(pub, l.asset));
+    const predicted = findings(draftSheet(now, d, info));
+    for (const c of draftCalls(d)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await pub.waitForTransactionReceipt({ hash: await ow.writeContract({ address: vault, abi: vaubanVaultAbi, functionName: c.functionName, args: c.args as any }) });
+    }
+    assert.deepEqual(await inspect(pub, vault), predicted, "the draft check must predict what the chain says after signing");
+  }
+  // draft 1 set ETH caps that cancel out and nothing since has fixed them
+  assert.deepEqual((await inspect(pub, vault)).map((x) => x.code), ["tx-over-hour", "gate-unreachable"]);
 });
 
 test("the report says CLEAR or how many to check, and refuses a non-vault", async () => {

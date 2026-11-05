@@ -67,7 +67,7 @@ The helpers use only Node.js, which ships with Aeon. They write nothing except t
    ```
    - The report starts with `VAUBAN INSPECT CLEAR` or `VAUBAN INSPECT <n> to check`, then one line per finding marked `RISK`, `CHECK` or `NOTE`. `--json` prints the same as JSON.
    - Exit `2` (`VAUBAN_INSPECT_RPC_DOWN`), `3` (`VAUBAN_INSPECT_BAD_VAULT`), `4` (`VAUBAN_INSPECT_NOT_VAUBAN`).
-   - It checks ETH limits and the allowlist against how the vault rules. It is not an audit of the contract.
+   - It checks ETH and token limits and the allowlist against how the vault rules. Token amounts are shown in the token's own units, using its `symbol()` and `decimals()`. It is not an audit of the contract.
 4. **Notify** with `./notify -f output/vauban-vault.md`. A sheet report, a ruling and an inspection notify every run. A watch notifies only when the output starts with `VAUBAN CHANGED`. Never call a channel API directly.
 5. **Log** to `memory/logs/YYYY-MM-DD.md` under `### vauban-vault`: `VAUBAN_STATUS <vault> rev=<n> frozen=<bool> held=<n>` or `VAUBAN_WATCH_CHANGED <n>` or `VAUBAN_WATCH_QUIET` or `VAUBAN_RULE <vault> <target> <pass|hold|refused:rampart>` or `VAUBAN_INSPECT <vault> <clear|n>`.
 
