@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The token — Vauban</title>
+<meta name="description" content="The $VAUBAN facts anyone can check on Robinhood Chain: the one real contract, its supply, what has been burned and what the deployer holds. No price, no promises.">
+<meta name="theme-color" content="#14150f">
+<meta property="og:title" content="The token — Vauban">
+<meta property="og:description" content="The $VAUBAN facts anyone can check on Robinhood Chain: the one real contract, its supply, what has been burned and what the deployer holds. No price, no promises.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://vauban.works/token/">
+<meta property="og:site_name" content="Vauban">
+<meta property="og:image" content="https://vauban.works/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@vaubanworks">
+<meta name="twitter:image" content="https://vauban.works/og.png">
+<link rel="canonical" href="https://vauban.works/token/">
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="/" aria-label="Vauban — home"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 3 L5 13 L16 29 L27 13 L27 3" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-miterlimit="10"/><path d="M10.5 3 L10.5 14.6 L16 22.6 L21.5 14.6 L21.5 3" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".6"/><rect x="14" y="3" width="4" height="4" fill="#ff4a1c"/></svg><span class="wordmark">VAUBAN</span></a>
+    <nav class="links" aria-label="Primary"><a href="/works/">The works</a><a href="/drawing/">The drawing</a><a href="/construction/">Construction</a><a href="/name/">The name</a><a href="/table/">Owner's table</a><a href="/token/">The token</a></nav>
+    <span class="plate-no">SHEET VII · THE TOKEN</span>
+    <button class="menu" type="button" aria-expanded="false" aria-label="Menu">MENU</button>
+  </div>
+</header>
+<main id="main">
+<section class="phead">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap phead-in">
+    <div>
+      <p class="crumbs"><a href="/">General plan</a> / The token</p>
+      <p class="kicker">Sheet VII</p>
+      <h1>The token.<br><span class="ink">Check it, don't take our word.</span></h1>
+      <p class="lede">Every figure on this sheet is read from Robinhood Chain when you open it. There is no price here and no prediction. The vault works without the token; the token pays for nothing in it.</p>
+    </div>
+    <div class="sheet">Source <b>on-chain</b><br>Price <b>not shown</b><br>Audited <b>no</b></div>
+  </div>
+</section>
+
+<section class="sec table-sec">
+  <div class="wrap">
+    <p class="tstatus" id="kStatus" role="status" aria-live="polite">Loading…</p>
+
+    <div class="tok-ca">
+      <p class="tok-label">The only contract</p>
+      <p class="tok-addr"><span id="kCa">—</span></p>
+      <div class="vrow">
+        <button class="btn" id="kCopy" type="button">Copy</button>
+        <a class="btn ghost-d" id="kChart" href="#" rel="noopener noreferrer" target="_blank">Chart</a>
+        <a class="btn ghost-d" id="kCaLink" href="#" rel="noopener noreferrer" target="_blank">All pairs</a>
+      </div>
+      <p class="small rnote">Name, symbol and logo can be copied by anyone. The address cannot. Check it against this page and against <a href="https://x.com/vaubanworks" style="text-decoration:underline">@vaubanworks</a> before you do anything.</p>
+    </div>
+
+    <div class="tgrid tok-grid">
+      <article class="tcard"><h3>Minted</h3><p class="big" id="kMinted">—</p><p class="small">once, at launch</p></article>
+      <article class="tcard"><h3>Supply now</h3><p class="big" id="kSupply">—</p><p class="small">totalSupply()</p></article>
+      <article class="tcard"><h3>Burned</h3><p id="kGone">—</p><p class="small">gone for good</p></article>
+      <article class="tcard"><h3>Deployer holds</h3><p class="big" id="kHeld">—</p><p class="small">balanceOf(deployer)</p></article>
+    </div>
+
+    <section class="curtain" aria-labelledby="kTaxHead">
+      <h2 class="disp" id="kTaxHead" style="margin:0 0 6px">Where the tax goes</h2>
+      <p class="small rnote">Trades pay a 3% creator tax to the deployer wallet. So far it has sold none of it: every payout was sent to the zero address, where no one can spend it. The figures below are recounted from the chain each time you open this page.</p>
+      <dl class="ledger tledger">
+        <div><dt>Deployer</dt><dd id="kDep">—</dd></div>
+        <div><dt>Burned by it</dt><dd id="kDepBurn">—</dd></div>
+        <div><dt>Share</dt><dd id="kShare">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="curtain" aria-labelledby="kFakeHead">
+      <h2 class="disp" id="kFakeHead" style="margin:0 0 6px">Not ours</h2>
+      <p class="small rnote">Tokens that copied the name, ticker or avatar. They have nothing to do with Vauban.</p>
+      <ul class="clist tok-fakes" id="kFakes"></ul>
+    </section>
+
+    <p class="small rnote" style="margin-top:48px">Nothing on this sheet is financial advice. Burns lower the supply; they do not set a price.</p>
+  </div>
+</section>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand small" href="/"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 3 L5 13 L16 29 L27 13 L27 3" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-miterlimit="10"/><path d="M10.5 3 L10.5 14.6 L16 22.6 L21.5 14.6 L21.5 3" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".6"/><rect x="14" y="3" width="4" height="4" fill="#ff4a1c"/></svg>VAUBAN</a>
+        <p class="lead">A fortification for autonomous agents. Four ramparts between an agent and its wallet, drawn once and held by the owner.</p>
+      </div>
+      <div><h4>Sheets</h4><a href="/works/">The works</a><a href="/drawing/">The drawing</a><a href="/construction/">Construction</a><a href="/name/">The name</a></div>
+      <div><h4>Ramparts</h4><a href="/works/#ditch">Ditch</a><a href="/works/#curtain">Curtain</a><a href="/works/#gate">Gate</a><a href="/works/#keep">Keep</a></div>
+      <div><h4>Status</h4><a href="/construction/">What is built</a><a href="/construction/#faq">Questions</a><a href="/table/">Owner's table</a><a href="https://x.com/vaubanworks">X</a><a href="https://github.com/vaubandev/vauban">GitHub</a></div>
+    </div>
+    <div class="foot-in">
+      <p>An independent work. Not affiliated with Aeon or Robinhood.</p>
+      <p>Nothing on these sheets is financial advice. <a href="https://x.com/vaubanworks">@vaubanworks</a></p>
+    </div>
+  </div>
+</footer>
+<script src="/app.js" defer></script>
+<script type="module" src="/token.js"></script>
+</body>
+</html>

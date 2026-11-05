@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGES, SITE = ROOT / "pages", ROOT / "site"
 ORIGIN = "https://vauban.works"
 
-NAV = [("/works/", "The works"), ("/drawing/", "The drawing"), ("/construction/", "Construction"), ("/name/", "The name"), ("/table/", "Owner's table")]
+NAV = [("/works/", "The works"), ("/drawing/", "The drawing"), ("/construction/", "Construction"), ("/name/", "The name"), ("/table/", "Owner's table"), ("/token/", "The token")]
 
 MARK = (
     '<svg class="mark" viewBox="0 0 32 32" aria-hidden="true">'
@@ -78,14 +78,18 @@ SHELL = """<!doctype html>
 """
 
 
+MODULES = ("/table.js", "/token.js")
+
+
 def bundle():
     sdk = ROOT / "sdk"
-    subprocess.run(
-        ["npx", "esbuild", "src/table.ts", "--bundle", "--minify", "--format=esm", "--target=es2020",
-         "--outfile=" + str(SITE / "table.js")],
-        cwd=sdk, check=True, capture_output=True,
-    )
-    print(f"table.js       -> site/table.js  ({(SITE / 'table.js').stat().st_size} B)")
+    for name in ("table", "token"):
+        subprocess.run(
+            ["npx", "esbuild", f"src/{name}.ts", "--bundle", "--minify", "--format=esm", "--target=es2020",
+             "--outfile=" + str(SITE / f"{name}.js")],
+            cwd=sdk, check=True, capture_output=True,
+        )
+        print(f"{name}.js{' ' * (10 - len(name))}-> site/{name}.js  ({(SITE / f'{name}.js').stat().st_size} B)")
 
 
 def build():
@@ -97,7 +101,7 @@ def build():
         route = meta["route"]
         links = "".join(f'<a href="{h}">{t}</a>' for h, t in NAV)
         extra = "".join(
-            f'\n<script type="module" src="{s}"></script>' if s == "/table.js" else f'\n<script src="{s}" defer></script>'
+            f'\n<script type="module" src="{s}"></script>' if s in MODULES else f'\n<script src="{s}" defer></script>'
             for s in meta.get("scripts", "").split() if s
         )
         html = SHELL.format(

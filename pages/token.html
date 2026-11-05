@@ -1,0 +1,59 @@
+<!-- route: /token/ -->
+<!-- title: The token — Vauban -->
+<!-- desc: The $VAUBAN facts anyone can check on Robinhood Chain: the one real contract, its supply, what has been burned and what the deployer holds. No price, no promises. -->
+<!-- plate: SHEET VII · THE TOKEN -->
+<!-- scripts: /token.js -->
+<section class="phead">
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="wrap phead-in">
+    <div>
+      <p class="crumbs"><a href="/">General plan</a> / The token</p>
+      <p class="kicker">Sheet VII</p>
+      <h1>The token.<br><span class="ink">Check it, don't take our word.</span></h1>
+      <p class="lede">Every figure on this sheet is read from Robinhood Chain when you open it. There is no price here and no prediction. The vault works without the token; the token pays for nothing in it.</p>
+    </div>
+    <div class="sheet">Source <b>on-chain</b><br>Price <b>not shown</b><br>Audited <b>no</b></div>
+  </div>
+</section>
+
+<section class="sec table-sec">
+  <div class="wrap">
+    <p class="tstatus" id="kStatus" role="status" aria-live="polite">Loading…</p>
+
+    <div class="tok-ca">
+      <p class="tok-label">The only contract</p>
+      <p class="tok-addr"><span id="kCa">—</span></p>
+      <div class="vrow">
+        <button class="btn" id="kCopy" type="button">Copy</button>
+        <a class="btn ghost-d" id="kChart" href="#" rel="noopener noreferrer" target="_blank">Chart</a>
+        <a class="btn ghost-d" id="kCaLink" href="#" rel="noopener noreferrer" target="_blank">All pairs</a>
+      </div>
+      <p class="small rnote">Name, symbol and logo can be copied by anyone. The address cannot. Check it against this page and against <a href="https://x.com/vaubanworks" style="text-decoration:underline">@vaubanworks</a> before you do anything.</p>
+    </div>
+
+    <div class="tgrid tok-grid">
+      <article class="tcard"><h3>Minted</h3><p class="big" id="kMinted">—</p><p class="small">once, at launch</p></article>
+      <article class="tcard"><h3>Supply now</h3><p class="big" id="kSupply">—</p><p class="small">totalSupply()</p></article>
+      <article class="tcard"><h3>Burned</h3><p id="kGone">—</p><p class="small">gone for good</p></article>
+      <article class="tcard"><h3>Deployer holds</h3><p class="big" id="kHeld">—</p><p class="small">balanceOf(deployer)</p></article>
+    </div>
+
+    <section class="curtain" aria-labelledby="kTaxHead">
+      <h2 class="disp" id="kTaxHead" style="margin:0 0 6px">Where the tax goes</h2>
+      <p class="small rnote">Trades pay a 3% creator tax to the deployer wallet. So far it has sold none of it: every payout was sent to the zero address, where no one can spend it. The figures below are recounted from the chain each time you open this page.</p>
+      <dl class="ledger tledger">
+        <div><dt>Deployer</dt><dd id="kDep">—</dd></div>
+        <div><dt>Burned by it</dt><dd id="kDepBurn">—</dd></div>
+        <div><dt>Share</dt><dd id="kShare">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="curtain" aria-labelledby="kFakeHead">
+      <h2 class="disp" id="kFakeHead" style="margin:0 0 6px">Not ours</h2>
+      <p class="small rnote">Tokens that copied the name, ticker or avatar. They have nothing to do with Vauban.</p>
+      <ul class="clist tok-fakes" id="kFakes"></ul>
+    </section>
+
+    <p class="small rnote" style="margin-top:48px">Nothing on this sheet is financial advice. Burns lower the supply; they do not set a price.</p>
+  </div>
+</section>
