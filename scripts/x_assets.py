@@ -536,6 +536,31 @@ def sheet_card():
     done(img, "tweet-sheet.png")
 
 
+def og_page(name, kicker, line1, line2, foot):
+    """One 1200x630 share card per page, so a link to /table/ or /token/ shows what that page is."""
+    W, H = 1200, 630
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 45, (32, 33, 26))
+    fort(d, 930, 315, 220, PAPER, (95, 96, 80))
+    mono = font(MONO, 16)
+    text(d, (72, 84), kicker, mono, OLIVE)
+    mark(d, 72, 140, 64, PAPER)
+    text(d, (152, 146), "VAUBAN", font(SERIF, 64, 500), PAPER)
+    body = font(SERIF, 46, 400)
+    text(d, (72, 286), line1, body, PAPER)
+    text(d, (72, 346), line2, body, FIRE)
+    text(d, (72, 540), foot, mono, (160, 156, 138))
+    done(img, f"og-{name}.png")
+
+
+def og_pages():
+    og_page("table", "SHEET VI  ·  OWNER'S TABLE", "Read any vault.", "Check it before you sign.",
+            "RULE A CALL  ·  INSPECTION  ·  DRAW THE SHEET  ·  THE RECORD")
+    og_page("token", "SHEET VII  ·  THE TOKEN", "The one real contract.", "Burns counted from the chain.",
+            "SUPPLY  ·  BURNED  ·  DEPLOYER BALANCE  ·  NO PRICE SHOWN")
+
+
 def article_banner():
     # X Articles cover is 5:2 and is cropped a little on narrow screens: keep text left and away from edges.
     W, H = 1500, 600

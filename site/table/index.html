@@ -11,12 +11,12 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://vauban.works/table/">
 <meta property="og:site_name" content="Vauban">
-<meta property="og:image" content="https://vauban.works/og.png">
+<meta property="og:image" content="https://vauban.works/og-table.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@vaubanworks">
-<meta name="twitter:image" content="https://vauban.works/og.png">
+<meta name="twitter:image" content="https://vauban.works/og-table.png">
 <link rel="canonical" href="https://vauban.works/table/">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,6 +98,7 @@
         <h2 class="disp" id="iHead" style="margin:0 0 6px">Inspection <span class="count" id="iCount">0</span></h2>
         <p class="small rnote">The vault's own settings, checked for anything that does not do what it looks like. Read-only, from the chain.</p>
         <ul class="ilist" id="iList"></ul>
+        <div class="vrow" style="margin-top:14px"><a class="btn ghost-d" id="iTweet" href="#" rel="noopener noreferrer" target="_blank">Share on X</a></div>
       </section>
 
       <section class="curtain" aria-labelledby="cHead">
@@ -114,7 +115,7 @@
           <label>Value (ETH)<input id="rValue" placeholder="0" inputmode="decimal" autocomplete="off"></label>
           <label class="wide">Calldata<input id="rData" placeholder="0x (empty for a plain ETH send)" autocomplete="off" spellcheck="false"></label>
         </div>
-        <div class="vrow"><button class="btn" type="submit">Rule</button><button class="btn ghost-d" id="rShare" type="button" hidden>Copy link</button></div>
+        <div class="vrow"><button class="btn" type="submit">Rule</button><button class="btn ghost-d" id="rShare" type="button" hidden>Copy link</button><a class="btn ghost-d" id="rTweet" href="#" rel="noopener noreferrer" target="_blank" hidden>Share on X</a></div>
         <p class="rverdict" id="rOut" role="status" aria-live="polite"></p>
       </form>
 

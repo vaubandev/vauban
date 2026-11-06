@@ -8,6 +8,7 @@ import {
   robinhoodChain, readState, readFacts, findings, draftSheet, draftCalls, targetInfo,
   listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE,
 } from "./index.ts";
+import { setShare } from "./share.ts";
 
 declare global {
   interface Window { ethereum?: EIP1193Provider }
@@ -183,6 +184,13 @@ function renderFindings(found: Finding[], listId = "iList", countId: string | nu
     setText(countId, String(serious));
     $(countId).dataset.kind = serious ? "warn" : "ok";
   }
+  if (countId && vault) {
+    const link = `${location.origin}/table/?vault=${vault}`;
+    const msg = serious
+      ? `Ran inspection on a Vauban vault: ${serious} setting${serious > 1 ? "s" : ""} that don't do what they look like. Check yours, read-only, from the chain.`
+      : "Ran inspection on a Vauban vault: nothing to warn about, every setting does what it looks like. Check yours, read-only, from the chain.";
+    setShare($<HTMLAnchorElement>("iTweet"), msg, link);
+  }
   const rows = serious ? found : [{ level: "ok", text: "Nothing to warn about: every setting does what it looks like." }, ...found];
   for (const x of rows) {
     const li = document.createElement("li");
@@ -322,6 +330,11 @@ function verdict(text: string, kind: "pass" | "hold" | "refused" | "err") {
   const el = $("rOut");
   el.textContent = text;
   el.dataset.kind = kind;
+  const tw = $<HTMLAnchorElement>("rTweet");
+  if (kind === "err" || !vault) { tw.hidden = true; return; }
+  // the shared link reopens this exact ruling on the page
+  const head = text.split(" — ")[0];
+  setShare(tw, `Asked a Vauban vault how it would rule on one call, before anything was signed: ${head}.`, location.href);
 }
 
 async function rule() {

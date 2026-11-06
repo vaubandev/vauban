@@ -3,6 +3,7 @@
 <!-- desc: Read any Vauban vault on Robinhood Chain: keep state, caps, spend today and moves held at the gate. Owners can draw the sheet, checked before signing, freeze and drop the gate from their own wallet. -->
 <!-- plate: SHEET VI · OWNER'S TABLE -->
 <!-- scripts: /table.js -->
+<!-- og: og-table.png -->
 <section class="phead">
   <div class="grid-bg" aria-hidden="true"></div>
   <div class="wrap phead-in">
@@ -66,6 +67,7 @@
         <h2 class="disp" id="iHead" style="margin:0 0 6px">Inspection <span class="count" id="iCount">0</span></h2>
         <p class="small rnote">The vault's own settings, checked for anything that does not do what it looks like. Read-only, from the chain.</p>
         <ul class="ilist" id="iList"></ul>
+        <div class="vrow" style="margin-top:14px"><a class="btn ghost-d" id="iTweet" href="#" rel="noopener noreferrer" target="_blank">Share on X</a></div>
       </section>
 
       <section class="curtain" aria-labelledby="cHead">
@@ -82,7 +84,7 @@
           <label>Value (ETH)<input id="rValue" placeholder="0" inputmode="decimal" autocomplete="off"></label>
           <label class="wide">Calldata<input id="rData" placeholder="0x (empty for a plain ETH send)" autocomplete="off" spellcheck="false"></label>
         </div>
-        <div class="vrow"><button class="btn" type="submit">Rule</button><button class="btn ghost-d" id="rShare" type="button" hidden>Copy link</button></div>
+        <div class="vrow"><button class="btn" type="submit">Rule</button><button class="btn ghost-d" id="rShare" type="button" hidden>Copy link</button><a class="btn ghost-d" id="rTweet" href="#" rel="noopener noreferrer" target="_blank" hidden>Share on X</a></div>
         <p class="rverdict" id="rOut" role="status" aria-live="polite"></p>
       </form>
 

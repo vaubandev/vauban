@@ -2,6 +2,7 @@
 // No price, no prediction. Every figure links back to the chain it came from.
 import { type Address, createPublicClient, formatUnits, getAddress, http, isAddress, parseAbi } from "viem";
 import { robinhoodChain } from "./index.ts";
+import { setShare } from "./share.ts";
 
 const pub = createPublicClient({ chain: robinhoodChain, transport: http() });
 const $ = (id: string) => document.getElementById(id)!;
@@ -78,6 +79,9 @@ async function load() {
     set("kShare", burns.sum && gone ? `${pct(burns.sum, gone)} of everything burned` : "—");
     set("kHeld", whole(held));
     set("kStatus", `Read at block ${burns.head.toLocaleString("en-US")} · ${new Date().toLocaleTimeString()}`);
+    setShare($("kShare") as HTMLAnchorElement,
+      `Vauban token, read from the chain just now:\n\n${whole(gone)} burned (${pct(gone, MINTED)} of the 1B minted), ${burns.n} burns by the deployer wallet, which holds ${whole(held)}.\n\nOne real contract: ${ca}`,
+      "https://vauban.works/token/");
     $("kStatus").dataset.kind = "ok";
   } catch (e) {
     set("kStatus", "Could not read the chain right now: " + (e as Error).message.split("\n")[0]);

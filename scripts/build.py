@@ -29,12 +29,12 @@ SHELL = """<!doctype html>
 <meta property="og:type" content="website">
 <meta property="og:url" content="{origin}{route}">
 <meta property="og:site_name" content="Vauban">
-<meta property="og:image" content="{origin}/og.png">
+<meta property="og:image" content="{origin}/{og}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@vaubanworks">
-<meta name="twitter:image" content="{origin}/og.png">
+<meta name="twitter:image" content="{origin}/{og}">
 <link rel="canonical" href="{origin}{route}">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -106,7 +106,7 @@ def build():
         )
         html = SHELL.format(
             title=meta["title"], desc=meta["desc"], plate=meta.get("plate", "PLATE I"),
-            mark=MARK, links=links, body=body, extra=extra, origin=ORIGIN, route=route,
+            mark=MARK, links=links, body=body, extra=extra, origin=ORIGIN, route=route, og=meta.get("og", "og.png"),
         )
         out = SITE / route.strip("/") / "index.html" if route != "/" else SITE / "index.html"
         out.parent.mkdir(parents=True, exist_ok=True)
