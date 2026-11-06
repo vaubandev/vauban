@@ -79,6 +79,7 @@ async function load() {
 
     const isOwner = me && getAddress(me) === getAddress(s.owner);
     $("ownerCtl").hidden = !isOwner;
+    renderHandover(s.owner, s.agent, fx.pendingOwner);
     $<HTMLButtonElement>("bFreeze").hidden = s.frozen;
     $<HTMLButtonElement>("bUnfreeze").hidden = !s.frozen;
     setText("whoami", me ? (isOwner ? `Connected as owner ${short(me)}` : `Connected ${short(me)} — not the owner, read-only`) : "Not connected — read-only");
@@ -168,7 +169,7 @@ function describe(e: RecordEntry): [string, string] {
     }
     case "PolicyRevised": return ["rev", `Rules now at revision ${a.revision}`];
     case "AgentSet": return ["owner", `Agent set to ${short(String(a.agent))}`];
-    case "OwnershipTransferStarted": return ["owner", `Owner offered the vault to ${short(String(a.to))}`];
+    case "OwnershipTransferStarted": return ["owner", a.to === "0x0000000000000000000000000000000000000000" ? "Owner withdrew the handover offer" : `Owner offered the vault to ${short(String(a.to))}`];
     case "OwnershipTransferred": return ["owner", a.from === "0x0000000000000000000000000000000000000000" ? `Vault built, owner ${short(String(a.to))}` : `Owner is now ${short(String(a.to))}`];
     default: return ["rev", e.event];
   }
@@ -263,8 +264,42 @@ function renderHeld(held: HeldMove[], isOwner: boolean) {
   }
 }
 
-async function write(fn: "freeze" | "unfreeze" | "cancel", args: readonly unknown[]) {
-  if (!window.ethereum || !me || !vault) return;
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+let agentAddr: Address | null = null;
+
+function oSay(text: string, kind: "pass" | "hold" | "refused" | "err" | "" = "") {
+  const el = $("oOut");
+  el.textContent = text;
+  el.dataset.kind = kind;
+}
+
+function renderHandover(own: Address, agent: Address, pending: Address) {
+  agentAddr = agent;
+  const offered = pending !== ZERO_ADDR;
+  $("sPendRow").hidden = !offered;
+  if (offered) setText("sPending", `${pending} — not accepted yet`);
+  const isOwner = !!me && getAddress(me) === getAddress(own);
+  const isPending = offered && !!me && getAddress(me) === getAddress(pending);
+  $("oForm").hidden = !isOwner && !isPending;
+  $("oOfferRow").hidden = !isOwner;
+  $("oCancel").hidden = !isOwner || !offered;
+  $("oAcceptRow").hidden = !isPending;
+  if (isPending && !$("oOut").textContent) oSay("This vault has been offered to your wallet. Accepting makes you the owner; the current owner loses control.", "hold");
+}
+
+function offerTarget(): Address {
+  const t = $<HTMLInputElement>("oTo").value.trim();
+  if (!isAddress(t)) throw new Error("New owner is not a valid address.");
+  const a = getAddress(t);
+  if (a === ZERO_ADDR) throw new Error("Use Cancel offer to withdraw; the zero address cannot own the vault.");
+  if (vault && a === vault) throw new Error("The vault cannot own itself.");
+  if (agentAddr && a === getAddress(agentAddr)) throw new Error("That is the agent's wallet. An agent that owns its vault can rewrite its own rules.");
+  if (owner && a === getAddress(owner)) throw new Error("That wallet already owns the vault.");
+  return a;
+}
+
+async function write(fn: "freeze" | "unfreeze" | "cancel" | "transferOwnership" | "acceptOwnership", args: readonly unknown[]): Promise<string | null> {
+  if (!window.ethereum || !me || !vault) return "Connect a wallet first.";
   const wallet = createWalletClient({ chain: robinhoodChain, transport: custom(window.ethereum), account: me });
   try {
     const chainId = await wallet.getChainId();
@@ -287,8 +322,11 @@ async function write(fn: "freeze" | "unfreeze" | "cancel", args: readonly unknow
     const rcpt = await pub.waitForTransactionReceipt({ hash });
     if (rcpt.status !== "success") throw new Error(`${fn} reverted on-chain: ${hash}`);
     await load();
+    return null;
   } catch (e) {
-    status(e instanceof Refused ? e.message : (e as Error).message.split("\n")[0], "err");
+    const why = e instanceof Refused ? e.message : (e as Error).message.split("\n")[0];
+    status(why, "err");
+    return why;
   }
 }
 
@@ -323,6 +361,24 @@ $<HTMLFormElement>("vForm").addEventListener("submit", (e) => {
 });
 $("bConnect").addEventListener("click", connect);
 $("bFreeze").addEventListener("click", () => write("freeze", []));
+$<HTMLFormElement>("oForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  let to: Address;
+  try { to = offerTarget(); } catch (x) { return oSay((x as Error).message, "err"); }
+  oSay(`Offering the vault to ${short(to)}…`, "hold");
+  const err = await write("transferOwnership", [to]);
+  oSay(err ?? `Offered to ${short(to)}. Nothing changes until that wallet opens this page and accepts.`, err ? "err" : "pass");
+});
+$("oCancel").addEventListener("click", async () => {
+  oSay("Withdrawing the offer…", "hold");
+  const err = await write("transferOwnership", [ZERO_ADDR]);
+  oSay(err ?? "Offer withdrawn. You are still the owner.", err ? "err" : "pass");
+});
+$("oAccept").addEventListener("click", async () => {
+  oSay("Accepting…", "hold");
+  const err = await write("acceptOwnership", []);
+  oSay(err ?? "You own this vault now. The record shows the handover.", err ? "err" : "pass");
+});
 $("bUnfreeze").addEventListener("click", () => write("unfreeze", []));
 $("bRefresh").addEventListener("click", load);
 

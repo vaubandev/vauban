@@ -92,7 +92,20 @@
       <dl class="ledger tledger">
         <div><dt>Owner</dt><dd id="sOwner">—</dd></div>
         <div><dt>Agent</dt><dd id="sAgent">—</dd></div>
+        <div id="sPendRow" hidden><dt>Offered to</dt><dd id="sPending">—</dd></div>
       </dl>
+
+      <form class="vform rform" id="oForm" hidden>
+        <h2 class="disp" style="margin:0 0 6px">Hand over the vault</h2>
+        <p class="small rnote" id="oNote">Ownership moves in two steps. The owner offers it to a wallet; nothing changes until that wallet accepts. Until then the owner can offer it elsewhere or cancel.</p>
+        <div class="vrow" id="oOfferRow" hidden>
+          <input id="oTo" placeholder="0x… new owner" autocomplete="off" spellcheck="false">
+          <button class="btn" type="submit">Offer</button>
+          <button class="btn ghost-d" id="oCancel" type="button" hidden>Cancel offer</button>
+        </div>
+        <div class="vrow" id="oAcceptRow" hidden><button class="btn" id="oAccept" type="button">Accept ownership</button></div>
+        <p class="rverdict" id="oOut" role="status" aria-live="polite"></p>
+      </form>
 
       <section class="inspect" aria-labelledby="iHead">
         <h2 class="disp" id="iHead" style="margin:0 0 6px">Inspection <span class="count" id="iCount">0</span></h2>

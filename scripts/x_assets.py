@@ -561,6 +561,51 @@ def og_pages():
             "SUPPLY  ·  BURNED  ·  DEPLOYER BALANCE  ·  NO PRICE SHOWN")
 
 
+def handover_card():
+    W, H = 1600, 900
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    S = lambda *p: [v * SS for v in p]
+    small = font(MONO, 17)
+    bold = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 17)
+    dim = (160, 156, 138)
+    text(d, (96, 84), "VAUBAN.WORKS/TABLE  ·  HAND OVER THE VAULT", small, OLIVE)
+    mark(d, 96, 128, 52, PAPER)
+    text(d, (166, 134), "VAUBAN", font(SERIF, 52, 500), PAPER)
+    text(d, (96, 232), "Ownership moves in two steps.", font(SERIF, 54, 400), PAPER)
+    text(d, (96, 296), "Nothing changes until it's accepted.", font(SERIF, 54, 400), FIRE)
+
+    # The two steps and the record lines exactly as the anvil browser test produced them.
+    steps = (("1", "Offer", "the owner names a wallet.", "Inspection flags it as pending."),
+             ("2", "Accept", "that wallet signs to take it.", "The old owner loses control."))
+    for i, (n, head, l1, l2) in enumerate(steps):
+        x = 96 + i * 470
+        d.rectangle(S(x, 400, x + 440, 600), outline=(60, 61, 50), width=SS)
+        text(d, (x + 28, 424), n, font(SERIF, 52, 500), FIRE)
+        text(d, (x + 92, 432), head, font(SERIF, 38, 500), PAPER)
+        text(d, (x + 28, 518), l1, small, dim)
+        text(d, (x + 28, 548), l2, small, dim)
+    d.line(S(536, 500, 566, 500), fill=FIRE, width=2 * SS)
+    d.polygon(S(566, 500, 554, 492, 554, 508), fill=FIRE)
+
+    text(d, (1060, 404), "THE RECORD", bold, OLIVE)
+    rec = ("Owner is now 0x90F7…b906",
+           "Owner offered the vault to 0x90F7…b906",
+           "Owner withdrew the handover offer",
+           "Owner offered the vault to 0x90F7…b906")
+    for i, ln in enumerate(rec):
+        y = 448 + i * 38
+        d.rectangle(S(1060, y + 6, 1068, y + 14), fill=FIRE if i == 0 else (95, 96, 80))
+        text(d, (1084, y), ln, small, PAPER if i == 0 else dim)
+
+    text(d, (96, 660), "Refused before signing: the agent's own wallet, the vault itself, the current owner.", small, dim)
+    text(d, (96, 812), "Read from the chain. No keys held. Not audited.", small, dim)
+    text(d, (W - 96, 812), "vauban.works/table", small, dim, anchor="ra")
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "tweet-handover.png")
+
+
 def article_banner():
     # X Articles cover is 5:2 and is cropped a little on narrow screens: keep text left and away from edges.
     W, H = 1500, 600
