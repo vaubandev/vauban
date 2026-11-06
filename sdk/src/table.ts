@@ -188,7 +188,7 @@ function renderFindings(found: Finding[], listId = "iList", countId: string | nu
   if (countId && vault) {
     const link = `${location.origin}/table/?vault=${vault}`;
     const msg = serious
-      ? `Ran inspection on a Vauban vault: ${serious} setting${serious > 1 ? "s" : ""} that don't do what they look like. Check yours, read-only, from the chain.`
+      ? `Ran inspection on a Vauban vault: ${serious > 1 ? `${serious} settings that don't` : "1 setting that doesn't"} do what ${serious > 1 ? "they look" : "it looks"} like. Check yours, read-only, from the chain.`
       : "Ran inspection on a Vauban vault: nothing to warn about, every setting does what it looks like. Check yours, read-only, from the chain.";
     setShare($<HTMLAnchorElement>("iTweet"), msg, link);
   }
