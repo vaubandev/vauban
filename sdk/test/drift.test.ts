@@ -35,6 +35,7 @@ test("Aeon event topics match the ABI", () => {
   const want: Record<string, string> = {
     born: "OwnershipTransferred", listed: "Listed", limits: "LimitsSet", held: "HeldAtGate",
     passed: "Passed", cancelled: "Cancelled", frozen: "Frozen", revised: "PolicyRevised",
+    offered: "OwnershipTransferStarted", agent: "AgentSet",
   };
   for (const [key, name] of Object.entries(want)) assert.equal(TOPIC[key], topicOf(name), key);
 });
@@ -49,6 +50,9 @@ test("Aeon decodes each watched event from the right place", () => {
     for (const f of fields) assert.equal(ev.inputs.find((i) => i.name === f)?.indexed ?? false, false, `${name}.${f} is indexed`);
   }
   assert.equal(events.find((e) => e.name === "PolicyRevised")!.inputs[0].indexed, true, "watch reads revision from topics[1]");
+  // the watch reads these addresses from topics, so every input must stay indexed
+  for (const name of ["OwnershipTransferStarted", "OwnershipTransferred", "AgentSet"])
+    for (const i of events.find((e) => e.name === name)!.inputs) assert.equal(i.indexed, true, `${name}.${i.name} must be indexed`);
 });
 
 test("Aeon function selectors match the ABI", () => {

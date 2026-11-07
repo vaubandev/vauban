@@ -112,6 +112,19 @@ test("the watch decodes every event the contract emits with its real log shape",
   for (const log of logs) assert.equal(typeof classify(log), "string");
 });
 
+test("the watch reports who controls the vault: offers, handovers and the agent", () => {
+  const OWNER = "0x" + "11".repeat(20), NEXT = "0x" + "22".repeat(20), BOT = "0x" + "33".repeat(20);
+  const zero = "0x" + "0".repeat(64);
+  assert.equal(classify({ address: VAULT, topics: [TOPIC.offered, topicAddr(OWNER), topicAddr(NEXT)], data: "0x" }),
+    `${VAULT} OWNER offered the vault to ${NEXT} (not accepted yet)`);
+  assert.equal(classify({ address: VAULT, topics: [TOPIC.offered, topicAddr(OWNER), zero], data: "0x" }),
+    `${VAULT} OWNER withdrew the handover offer`);
+  assert.equal(classify({ address: VAULT, topics: [TOPIC.born, topicAddr(OWNER), topicAddr(NEXT)], data: "0x" }),
+    `${VAULT} OWNER is now ${NEXT} (was ${OWNER})`);
+  assert.equal(classify({ address: VAULT, topics: [TOPIC.agent, topicAddr(BOT)], data: "0x" }), `${VAULT} AGENT set to ${BOT}`);
+  assert.equal(classify({ address: VAULT, topics: [TOPIC.born, zero, topicAddr(OWNER)], data: "0x" }), null, "the vault being built is not a handover");
+});
+
 test("a refusal names its rampart, with ETH caps in ETH", () => {
   const eth = "0x" + "0".repeat(40);
   const perTx = decodeRefusal("0x296fc248" + pad(BigInt(eth)) + pad(2n * 10n ** 17n) + pad(10n ** 17n));

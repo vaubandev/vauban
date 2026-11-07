@@ -53,6 +53,7 @@ The helpers use only Node.js, which ships with Aeon. They write nothing except t
    ```
    - The first run only records the current block and prints `VAUBAN QUIET`, so installing it never replays history.
    - Later runs print `VAUBAN CHANGED` with one line per new event, or `VAUBAN QUIET`.
+   - Who controls the vault is reported too: `OWNER offered the vault to 0x… (not accepted yet)`, `OWNER withdrew the handover offer`, `OWNER is now 0x… (was 0x…)` and `AGENT set to 0x…`. An offer you did not expect is the line to act on.
    - Exit `2` (`VAUBAN_WATCH_RPC_DOWN`) leaves the bookmark untouched. Log it and stop without notifying.
 3b. **Rule on one call** when the prefix is `rule:`:
    ```bash
@@ -77,6 +78,7 @@ The helpers use only Node.js, which ships with Aeon. They write nothing except t
 - **Revision** - how many times the sheet has been rewritten. It is a counter, not a hash.
 - **Allowlist** - target address plus the function selectors permitted on it. `0x00000000` is a plain ETH send.
 - **Caps** - per transaction, per clock hour and per UTC day. The windows are fixed buckets, not rolling, so a burst across a boundary can use up to twice one cap. `hold above` is the size that waits at the gate instead of landing.
+- **Owner and agent** - ownership moves in two steps: an offer, then the new wallet accepts. Until it accepts, the old owner still holds the vault. A new agent key takes effect at once.
 - **Held** - moves waiting at the gate. They do not expire. The agent or the owner releases them after the time shown, and the owner can cancel before that.
 - **Refusals are absent from the logs.** A refused call reverts, so it leaves no vault log. `status` and `watch` report what the vault did; `rule:` is the only way to see what it would turn away.
 

@@ -17,7 +17,7 @@ type Pack = {
 };
 const pack: Pack = await import(new URL("../../aeon/skills/vauban-vault/inspect.mjs", import.meta.url).href);
 
-// anvil dev keys #1 (owner) and #2 (agent), local chain only
+// anvil dev keys #1 (owner), #2 (agent), #3 (handover target), local chain only
 const OWNER = privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
 const AGENT = privateKeyToAccount("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a");
 const WALLET: Address = "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
@@ -152,6 +152,34 @@ test("a draft step the vault refuses is named before anything is sent", async ()
   // a stranger, and then the vault itself as target: both must come back as a named refusal, not a raw revert
   await assert.rejects(pub.call({ account: AGENT.address, to: vault, data: c.data }).catch(toRefused), (e: unknown) => e instanceof Refused && e.code === "NotOwner");
   await assert.rejects(pub.call({ account: OWNER.address, to: vault, data: c.data }).catch(toRefused), (e: unknown) => e instanceof Refused && e.code === "CurtainSelfCall");
+});
+
+test("the watch reports a full handover and an agent change from real logs", async () => {
+  const watch: { changesSince: (url: string, vaults: string[], from: bigint, to: bigint) => Promise<string[]> } =
+    await import(new URL("../../aeon/skills/vauban-vault/watch.mjs", import.meta.url).href);
+  const { vault } = await deploy(AGENT.address, 21600n);
+  const from = await pub.getBlockNumber();
+  const NEW = privateKeyToAccount("0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6");
+  const nw = createWalletClient({ chain: foundry, transport, account: NEW });
+  const send = async (w: typeof ow, functionName: "transferOwnership" | "acceptOwnership" | "setAgent", args: readonly unknown[]) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pub.waitForTransactionReceipt({ hash: await w.writeContract({ address: vault, abi: vaubanVaultAbi, functionName, args: args as any }) });
+  await send(ow, "transferOwnership", [NEW.address]);
+  await send(ow, "transferOwnership", ["0x0000000000000000000000000000000000000000"]);
+  await send(ow, "transferOwnership", [NEW.address]);
+  await send(nw, "acceptOwnership", []);
+  const BOT: Address = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65";
+  await send(nw, "setAgent", [BOT]);
+  const lines = await watch.changesSince(URL_, [vault.toLowerCase()], from, await pub.getBlockNumber());
+  const v = vault.toLowerCase(), n = NEW.address.toLowerCase();
+  assert.deepEqual(lines.filter((l) => /OWNER|AGENT/.test(l)), [
+    `${v} OWNER offered the vault to ${n} (not accepted yet)`,
+    `${v} OWNER withdrew the handover offer`,
+    `${v} OWNER offered the vault to ${n} (not accepted yet)`,
+    `${v} OWNER is now ${n} (was ${OWNER.address.toLowerCase()})`,
+    `${v} AGENT set to ${BOT.toLowerCase()}`,
+  ]);
+  assert.notEqual(n, BOT.toLowerCase(), "owner and agent must differ so the lines can't be confused");
 });
 
 test("the report says CLEAR or how many to check, and refuses a non-vault", async () => {

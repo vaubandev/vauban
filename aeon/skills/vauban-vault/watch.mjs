@@ -7,7 +7,8 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { RPC, CHAIN_ID, TOPIC, isAddress, isVauban, word, addrOf, hex, rpc, fail } from "./vault.mjs";
 
-const WATCHED = [TOPIC.held, TOPIC.passed, TOPIC.cancelled, TOPIC.frozen, TOPIC.listed, TOPIC.limits, TOPIC.revised];
+const WATCHED = [TOPIC.held, TOPIC.passed, TOPIC.cancelled, TOPIC.frozen, TOPIC.listed, TOPIC.limits, TOPIC.revised, TOPIC.offered, TOPIC.born, TOPIC.agent];
+const ZERO_WORD = "0x" + "0".repeat(64);
 
 function watchList(argv) {
   const i = argv.indexOf("--watch");
@@ -30,6 +31,15 @@ export function classify(log) {
   if (t === TOPIC.limits) return `${v} limits ${word(log.data, 0) === 1n ? "set" : "cleared"} for ${addrOf(log.topics[1])}`;
   // PolicyRevised(uint64 indexed revision): the value is in topics[1], data is empty.
   if (t === TOPIC.revised) return `${v} revision ${BigInt(log.topics[1])}`;
+  // Ownership and agent events carry their addresses in topics; data is empty.
+  if (t === TOPIC.offered) {
+    return log.topics[2] === ZERO_WORD
+      ? `${v} OWNER withdrew the handover offer`
+      : `${v} OWNER offered the vault to ${addrOf(log.topics[2])} (not accepted yet)`;
+  }
+  // The constructor's OwnershipTransferred(0x0, owner) is the vault being built, not a handover.
+  if (t === TOPIC.born) return !log.topics[2] || log.topics[1] === ZERO_WORD ? null : `${v} OWNER is now ${addrOf(log.topics[2])} (was ${addrOf(log.topics[1])})`;
+  if (t === TOPIC.agent) return `${v} AGENT set to ${addrOf(log.topics[1])}`;
   return null;
 }
 

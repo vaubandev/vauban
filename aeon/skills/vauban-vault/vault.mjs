@@ -19,6 +19,8 @@ export const TOPIC = {
   cancelled: "0xbaa1eb22f2a492ba1a5fea61b8df4d27c6c8b5f3971e63bb58fa14ff72eedb70",
   frozen: "0x59800d968fcce138300a0019410b4b75041610d65b3cdc5f31656b03ed14912e",
   revised: "0x6e396392ff3042c11f8cfbf4bd0247855ea728053f31a430df9522b044fefd57",
+  offered: "0x38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e22700",
+  agent: "0xe3162ce634ee4c6e39c868aa130f44228244e7469c577a852dd02e9fd9cb59c3",
 };
 
 // revert selector -> rampart. From `forge inspect VaubanVault errors`.

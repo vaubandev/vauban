@@ -8,7 +8,7 @@ bin/install-skill-pack vaubandev/vauban --path aeon
 
 | Skill | What it does | Secrets | Capabilities | Default schedule |
 |---|---|---|---|---|
-| `vauban-vault` | Reports the sheet a vault enforces on its agent: allowlist, caps left this hour and UTC day, moves held at the gate, freeze and revision. `watch:0xVAULT` reports only what changed since the last run. `rule:0xVAULT 0xTARGET` dry-runs one call and says pass, hold or refused, and at which rampart. `inspect:0xVAULT` flags settings that do not do what they look like. | none | `read_only`, `sends_notifications` | `0 */6 * * *`, disabled until you enable it |
+| `vauban-vault` | Reports the sheet a vault enforces on its agent: allowlist, caps left this hour and UTC day, moves held at the gate, freeze and revision. `watch:0xVAULT` reports only what changed since the last run, including ownership offers, handovers and a new agent key. `rule:0xVAULT 0xTARGET` dry-runs one call and says pass, hold or refused, and at which rampart. `inspect:0xVAULT` flags settings that do not do what they look like. | none | `read_only`, `sends_notifications` | `0 */6 * * *`, disabled until you enable it |
 
 The vault holds an agent's funds and checks every call against four ramparts: spend caps, an allowlist, a time-lock and an owner freeze. This pack only reads that vault. It never signs, never broadcasts and never asks for a key.
 

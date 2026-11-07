@@ -606,6 +606,40 @@ def handover_card():
     done(img, "tweet-handover.png")
 
 
+def watch_card():
+    W, H = 1600, 900
+    img = canvas(W, H, INK)
+    d = ImageDraw.Draw(img)
+    grid(d, W, H, 50, (32, 33, 26))
+    S = lambda *p: [v * SS for v in p]
+    mono, small = font(MONO, 19), font(MONO, 17)
+    bold = font("/usr/local/share/fonts/IBMPlexMono-SemiBold.ttf", 19)
+    dim = (160, 156, 138)
+    text(d, (96, 84), "VAUBAN PACK FOR AEON  ·  WATCH", small, OLIVE)
+    mark(d, 96, 128, 52, PAPER)
+    text(d, (166, 134), "VAUBAN", font(SERIF, 52, 500), PAPER)
+    text(d, (96, 232), "Know when someone", font(SERIF, 54, 400), PAPER)
+    text(d, (96, 296), "reaches for the keys.", font(SERIF, 54, 400), FIRE)
+
+    # Command and output exactly as the pack printed them for the reference vault's real handover on 4663.
+    d.rectangle(S(96, 396, 1504, 742), fill=(26, 27, 21), outline=(48, 49, 40), width=SS)
+    rows = (
+        ("watch:0xf9322f15…30e4097", PAPER, mono),
+        ("", PAPER, mono),
+        ("VAUBAN CHANGED", FIRE, bold),
+        ("", PAPER, mono),
+        ("- OWNER offered the vault to 0xef77…239c (not accepted yet)", PAPER, mono),
+        ("- OWNER is now 0xef77…239c (was 0x538f…2b29)", PAPER, mono),
+    )
+    for i, (ln, col, f) in enumerate(rows):
+        text(d, (128, 428 + i * 46), ln, f, col)
+
+    text(d, (96, 790), "Also reports a withdrawn offer and a new agent key. Read-only, never signs.", small, dim)
+    text(d, (W - 96, 790), "vauban.works", small, dim, anchor="ra")
+    d.rectangle([0, (H - 8) * SS, W * SS, H * SS], fill=FIRE)
+    done(img, "tweet-watch.png")
+
+
 def article_banner():
     # X Articles cover is 5:2 and is cropped a little on narrow screens: keep text left and away from edges.
     W, H = 1500, 600
