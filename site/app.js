@@ -52,12 +52,13 @@ if (!calm && "IntersectionObserver" in window) {
 /** Count a figure up to its final text the first time it is seen. Non-numeric text is left alone. */
 const ROMAN = { I: 1, II: 2, III: 3, IV: 4, V: 5 };
 function countUp(el) {
-  if (calm || el.dataset.counted) return;
+  // a second call mid-animation would read a half-counted number as the target
+  if (calm || el.dataset.counting) return;
   const final = el.textContent.trim();
   const roman = ROMAN[final];
   const m = final.match(/^([\d,]+)(.*)$/);
   if (!roman && !m) return;
-  el.dataset.counted = "1";
+  el.dataset.counting = "1";
   const target = roman ?? Number(m[1].replace(/,/g, ""));
   const tail = roman ? "" : m[2];
   const t0 = performance.now(), dur = 1100;
@@ -65,6 +66,7 @@ function countUp(el) {
     const p = Math.min(1, (now - t0) / dur), v = Math.round(target * (1 - Math.pow(1 - p, 3)));
     el.textContent = p < 1 ? (roman ? (Object.keys(ROMAN).find((k) => ROMAN[k] === Math.max(1, v)) ?? final) : v.toLocaleString("en-US") + tail) : final;
     if (p < 1) requestAnimationFrame(step);
+    else delete el.dataset.counting;
   };
   requestAnimationFrame(step);
 }
