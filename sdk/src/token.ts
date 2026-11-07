@@ -79,7 +79,7 @@ async function load() {
     set("kShare", burns.sum && gone ? `${pct(burns.sum, gone)} of everything burned` : "—");
     set("kHeld", whole(held));
     set("kStatus", `Read at block ${burns.head.toLocaleString("en-US")} · ${new Date().toLocaleTimeString()}`);
-    setShare($("kShare") as HTMLAnchorElement,
+    setShare($("kTweet") as HTMLAnchorElement,
       `Vauban token, read from the chain just now:\n\n${whole(gone)} burned (${pct(gone, MINTED)} of the 1B minted), ${burns.n} burns by the deployer wallet, which holds ${whole(held)}.\n\nOne real contract: ${ca}`,
       "https://vauban.works/token/");
     $("kStatus").dataset.kind = "ok";
