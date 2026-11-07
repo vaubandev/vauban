@@ -78,6 +78,9 @@ async function load() {
     set("kDepBurn", `${whole(burns.sum)} in ${burns.n} burn${burns.n === 1 ? "" : "s"}`);
     set("kShare", burns.sum && gone ? `${pct(burns.sum, gone)} of everything burned` : "—");
     set("kHeld", whole(held));
+    // app.js counts each figure up to the exact value just written; the final text is always the chain's number
+    const count = (window as unknown as { vaubanCount?: (el: HTMLElement) => void }).vaubanCount;
+    if (count) ["kMinted", "kSupply"].forEach((id) => count($(id)));
     set("kStatus", `Read at block ${burns.head.toLocaleString("en-US")} · ${new Date().toLocaleTimeString()}`);
     setShare($("kTweet") as HTMLAnchorElement,
       `Vauban token, read from the chain just now:\n\n${whole(gone)} burned (${pct(gone, MINTED)} of the 1B minted), ${burns.n} burns by the deployer wallet, which holds ${whole(held)}.\n\nOne real contract: ${ca}`,
