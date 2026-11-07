@@ -158,7 +158,7 @@ test("the watch reports a full handover and an agent change from real logs", asy
   const watch: { changesSince: (url: string, vaults: string[], from: bigint, to: bigint) => Promise<string[]> } =
     await import(new URL("../../aeon/skills/vauban-vault/watch.mjs", import.meta.url).href);
   const { vault } = await deploy(AGENT.address, 21600n);
-  const from = await pub.getBlockNumber();
+  const from = await pub.getBlockNumber({ cacheTime: 0 });
   const NEW = privateKeyToAccount("0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6");
   const nw = createWalletClient({ chain: foundry, transport, account: NEW });
   const send = async (w: typeof ow, functionName: "transferOwnership" | "acceptOwnership" | "setAgent", args: readonly unknown[]) =>
@@ -170,7 +170,8 @@ test("the watch reports a full handover and an agent change from real logs", asy
   await send(nw, "acceptOwnership", []);
   const BOT: Address = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65";
   await send(nw, "setAgent", [BOT]);
-  const lines = await watch.changesSince(URL_, [vault.toLowerCase()], from, await pub.getBlockNumber());
+  // cacheTime 0: a cached head can sit below `from` and make the range backwards
+  const lines = await watch.changesSince(URL_, [vault.toLowerCase()], from, await pub.getBlockNumber({ cacheTime: 0 }));
   const v = vault.toLowerCase(), n = NEW.address.toLowerCase();
   assert.deepEqual(lines.filter((l) => /OWNER|AGENT/.test(l)), [
     `${v} OWNER offered the vault to ${n} (not accepted yet)`,
