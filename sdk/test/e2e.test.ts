@@ -10,7 +10,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanAgent, VaubanOwner, Refused, NATIVE, inspect, listAllowed, listHeld, listRecord, readState, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanAgent, VaubanOwner, Refused, NATIVE, headroom, inspect, listAllowed, listHeld, listRecord, readState, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
 // anvil's well-known dev keys — local chain only
@@ -123,6 +123,42 @@ test("large move is held, listed, then released after the delay", async () => {
   await rpc("evm_mine");
   await agent.release(r.id, call);
   assert.ok(!(await listHeld(pub, vault)).some((h) => h.id === r.id));
+});
+
+test("headroom says what the ditch still allows, and when it resets", async () => {
+  // start a fresh UTC day so earlier tests' spending is out of the buckets
+  const t0 = (await pub.getBlock()).timestamp;
+  await rpc("evm_setNextBlockTimestamp", [Number((t0 / 86400n + 1n) * 86400n + 60n)]);
+  await rpc("evm_mine");
+
+  let hr = await headroom(pub, vault);
+  assert.equal(hr.set, true);
+  assert.equal(hr.hourLeft, parseEther("0.3"));
+  assert.equal(hr.dayLeft, parseEther("1"));
+  assert.equal(hr.now, parseEther("0.1"), "per-tx is the tightest");
+  assert.equal(hr.holdAbove, parseEther("0.05"));
+
+  for (const v of ["0.04", "0.04", "0.04", "0.04", "0.04", "0.04", "0.04"]) await agent.execute(buy(v));
+  hr = await headroom(pub, vault);
+  assert.equal(hr.hourLeft, parseEther("0.02"));
+  assert.equal(hr.now, parseEther("0.02"), "the hour bucket is now the tightest");
+  assert.equal(await agent.rule(buy("0.02")), "pass");
+  await assert.rejects(agent.rule(buy("0.021")), (e: unknown) => e instanceof Refused && e.code === "DitchPerHour");
+
+  const now = (await pub.getBlock()).timestamp;
+  assert.equal(BigInt(hr.hourResets.getTime() / 1000), (now / 3600n + 1n) * 3600n);
+  assert.equal(BigInt(hr.dayResets.getTime() / 1000), (now / 86400n + 1n) * 86400n);
+
+  await rpc("evm_setNextBlockTimestamp", [hr.hourResets.getTime() / 1000]);
+  await rpc("evm_mine");
+  hr = await headroom(pub, vault);
+  assert.equal(hr.hourLeft, parseEther("0.3"));
+  assert.equal(hr.dayLeft, parseEther("0.72"));
+
+  const usdg = "0x00000000000000000000000000000000000000aa" as Address;
+  const none = await headroom(pub, vault, usdg);
+  assert.equal(none.set, false);
+  assert.equal(none.now, 0n, "an asset without caps cannot move");
 });
 
 test("freeze seals the keep; agent cannot lift it", async () => {

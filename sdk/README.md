@@ -44,6 +44,19 @@ await agent.release(r.id, { target, value, data });     // after the delay
 
 `execute`, `release` and `rule` throw `Refused` before any gas is spent when a rampart would refuse. `transferToken` and `approveToken` are shortcuts for ERC-20 moves; unlimited approvals are always refused.
 
+Size a move before asking: `headroom(pub, vault, asset)` returns what the ditch still allows at the latest block.
+
+```ts
+import { headroom } from "@vaubanworks/sdk";
+
+const h = await headroom(pub, vault);   // NATIVE (ETH) by default; pass a token address for its caps
+h.now;          // largest single amount that passes the ditch right now: min(perTx, hour left, day left)
+h.hourResets;   // when the hour bucket empties (a Date); h.dayResets for the UTC day
+h.holdAbove;    // above this the move waits at the gate (0 = never)
+```
+
+`now` covers the ditch only. The curtain still has to list the call, so pair it with `rule()`.
+
 ## Owner
 
 ```ts

@@ -1,6 +1,6 @@
 {
   "name": "@vaubanworks/sdk",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "TypeScript SDK for Vauban vaults on Robinhood Chain: an agent that is checked against caps, an allowlist, a time-lock and a kill switch on every call. Not audited.",
   "type": "module",
   "main": "./dist/index.js",

@@ -273,6 +273,44 @@ export async function readState(pub: PublicClient, vault: Address): Promise<Vaul
   return { owner, agent, frozen, gateDelay: BigInt(gateDelay), revision: BigInt(revision), balance };
 }
 
+export type Headroom = {
+  asset: Address;
+  set: boolean;
+  /** Largest single amount the ditch would let through right now: min(perTx, hour left, day left). */
+  now: bigint;
+  hourLeft: bigint;
+  dayLeft: bigint;
+  hourResets: Date;
+  dayResets: Date;
+  /** Amounts above this wait at the gate; 0 means nothing is held. */
+  holdAbove: bigint;
+};
+
+/** What the ditch still allows for one asset (NATIVE for ETH), measured at the latest block's time. */
+export async function headroom(pub: PublicClient, vault: Address, asset: Address = NATIVE): Promise<Headroom> {
+  const base = { address: vault, abi: vaubanVaultAbi } as const;
+  const [l, s, block] = await Promise.all([
+    pub.readContract({ ...base, functionName: "limits", args: [asset] }),
+    pub.readContract({ ...base, functionName: "spent", args: [asset] }),
+    pub.getBlock({ blockTag: "latest" }),
+  ]);
+  const [set, perTx, perHour, perDay, holdAbove] = l;
+  const [hourEpoch, dayEpoch, hourSpent, daySpent] = s;
+  const h = block.timestamp / 3600n, d = block.timestamp / 86400n;
+  const left = (cap: bigint, used: bigint) => (cap > used ? cap - used : 0n);
+  const hourLeft = set ? left(perHour, BigInt(hourEpoch) === h ? hourSpent : 0n) : 0n;
+  const dayLeft = set ? left(perDay, BigInt(dayEpoch) === d ? daySpent : 0n) : 0n;
+  const min = (...xs: bigint[]) => xs.reduce((a, b) => (b < a ? b : a));
+  return {
+    asset, set,
+    now: set ? min(perTx, hourLeft, dayLeft) : 0n,
+    hourLeft, dayLeft,
+    hourResets: new Date(Number((h + 1n) * 3600n) * 1000),
+    dayResets: new Date(Number((d + 1n) * 86400n) * 1000),
+    holdAbove: set ? holdAbove : 0n,
+  };
+}
+
 export type Listing = { target: Address; selectors: Hex[] };
 
 /**
