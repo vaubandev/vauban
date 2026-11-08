@@ -6,7 +6,7 @@ import {
 import {
   type Draft, type Facts, type Finding, type HeldMove, type Listing, type RecordEntry,
   robinhoodChain, readState, readFacts, findings, draftSheet, draftCalls, targetInfo,
-  listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE,
+  listHeld, listAllowed, listRecord, toRefused, Refused, vaubanVaultAbi, NATIVE, headroom,
 } from "./index.ts";
 import { setShare } from "./share.ts";
 
@@ -43,10 +43,10 @@ async function load() {
   try {
     const code = await pub.getCode({ address: vault });
     if (!code || code === "0x") throw new Error("No contract at this address on Robinhood Chain.");
-    const [s, eth, sp, held, allow, rec, fx] = await Promise.all([
+    const [s, eth, room, held, allow, rec, fx] = await Promise.all([
       readState(pub, vault),
       pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "limits", args: [NATIVE] }),
-      pub.readContract({ address: vault, abi: vaubanVaultAbi, functionName: "spent", args: [NATIVE] }),
+      headroom(pub, vault, NATIVE),
       fetchHeld(),
       listAllowed(pub, vault),
       listRecord(pub, vault, { times: true }),
@@ -71,9 +71,12 @@ async function load() {
     setText("sCaps", eth[0]
       ? `${formatEther(eth[1])} / tx · ${formatEther(eth[2])} / h · ${formatEther(eth[3])} / day`
       : "not set — ETH cannot move");
-    const today = BigInt(Math.floor(Date.now() / 86_400_000));
-    const daySpent = BigInt(sp[1]) === today ? sp[3] : 0n;
+    const daySpent = eth[3] - room.dayLeft;
+    const hhmm = (d: Date) => d.toISOString().slice(11, 16) + " UTC";
     setText("sSpent", eth[0] ? `${formatEther(daySpent)} of ${formatEther(eth[3])} ETH today` : "—");
+    setText("sRoom", eth[0]
+      ? `next move up to ${formatEther(room.now)} ETH · ${formatEther(room.hourLeft)} left this hour (resets ${hhmm(room.hourResets)}) · day resets ${hhmm(room.dayResets)}`
+      : "—");
     $<HTMLElement>("capFill").style.width = eth[0] && eth[3] > 0n ? Math.min(100, Number((daySpent * 100n) / eth[3])) + "%" : "0%";
     setText("sHold", eth[0] && eth[4] > 0n ? `hold above ${formatEther(eth[4])} ETH` : "no hold threshold");
 
