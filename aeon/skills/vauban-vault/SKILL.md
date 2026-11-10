@@ -47,6 +47,7 @@ The helpers use only Node.js, which ships with Aeon. They write nothing except t
    - Exit `3` (`VAUBAN_STATUS_BAD_VAULT`): the address was malformed.
    - Exit `4` (`VAUBAN_STATUS_NOT_VAUBAN`): the address has no code, or its code is not the Vauban vault. The report says so; notify with it.
    - `--json` prints the same facts as JSON.
+   - Under each capped asset, `next move up to X` is the largest single amount the caps let through at this block, with the UTC times the hour and day buckets reset. It covers the caps only; `rule:` says whether a given call also clears the allowlist.
 3. **Watch for changes** when the prefix is `watch:`:
    ```bash
    node skills/vauban-vault/watch.mjs --watch VAULT --state memory/state/vauban-vault.json > output/vauban-vault.md

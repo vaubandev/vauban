@@ -4,6 +4,8 @@
 
 import { RPC, CHAIN_ID, ZERO, SEL, isAddress, isVauban, word, addrOf, decodeString, fold, vaultLogs, amount, rpc, fail } from "./vault.mjs";
 
+const utc = (s) => new Date(Number(s) * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+
 export function render(v) {
   const lines = [`# Vauban vault ${v.vault}`, "", `Block ${v.block} on chain ${v.chainId}.`];
   if (!v.isVauban) return lines.concat(["", "This address is not a Vauban vault, so nothing else was read.", ""]).join("\n");
@@ -18,6 +20,7 @@ export function render(v) {
   if (!v.caps.length) lines.push("No caps set. An asset without caps cannot move.");
   for (const c of v.caps) {
     lines.push(`- ${name(c.asset)}: per tx ${amount(c.perTx, c.decimals)}, per hour ${amount(c.perHour, c.decimals)} (${amount(c.hourLeft, c.decimals)} left), per day ${amount(c.perDay, c.decimals)} (${amount(c.dayLeft, c.decimals)} left), hold above ${amount(c.holdAbove, c.decimals)}`);
+    if (c.now !== undefined) lines.push(`  - next move up to ${amount(c.now, c.decimals)}; hour resets ${utc(c.hourResets)}, day resets ${utc(c.dayResets)}`);
   }
   lines.push("", "## Held at the gate");
   if (!v.held.length) lines.push("Nothing held.");
@@ -57,12 +60,17 @@ export async function statusOf(url, vault) {
       return { asset: a, limits, spent, symbol, decimals };
     }));
     const left = (cap, used) => (cap > used ? cap - used : 0n);
-    const caps = rows.filter((r) => word(r.limits, 0) === 1n).map((r) => ({
-      asset: r.asset, decimals: r.decimals,
-      perTx: word(r.limits, 1), perHour: word(r.limits, 2), perDay: word(r.limits, 3), holdAbove: word(r.limits, 4),
-      hourLeft: left(word(r.limits, 2), word(r.spent, 0) === stamp / 3600n ? word(r.spent, 2) : 0n),
-      dayLeft: left(word(r.limits, 3), word(r.spent, 1) === stamp / 86400n ? word(r.spent, 3) : 0n),
-    }));
+    const min = (...xs) => xs.reduce((a, b) => (b < a ? b : a));
+    const caps = rows.filter((r) => word(r.limits, 0) === 1n).map((r) => {
+      const hourLeft = left(word(r.limits, 2), word(r.spent, 0) === stamp / 3600n ? word(r.spent, 2) : 0n);
+      const dayLeft = left(word(r.limits, 3), word(r.spent, 1) === stamp / 86400n ? word(r.spent, 3) : 0n);
+      return {
+        asset: r.asset, decimals: r.decimals,
+        perTx: word(r.limits, 1), perHour: word(r.limits, 2), perDay: word(r.limits, 3), holdAbove: word(r.limits, 4),
+        hourLeft, dayLeft, now: min(word(r.limits, 1), hourLeft, dayLeft),
+        hourResets: (stamp / 3600n + 1n) * 3600n, dayResets: (stamp / 86400n + 1n) * 86400n,
+      };
+    });
     const held = [];
     for (const [id, h] of sheet.held) {
       const [on] = await rpc(url, [call(vault, SEL.held, id.slice(2))]);

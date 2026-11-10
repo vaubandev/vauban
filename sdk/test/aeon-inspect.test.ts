@@ -7,7 +7,7 @@ import { homedir } from "node:os";
 import { createPublicClient, createWalletClient, http, parseEther, toFunctionSelector, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanOwner, NATIVE, Refused, toRefused, inspect, findings, readFacts, draftSheet, draftCalls, targetInfo, type Draft, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanAgent, VaubanOwner, NATIVE, Refused, toRefused, headroom, inspect, findings, readFacts, draftSheet, draftCalls, targetInfo, type Draft, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
 type F = { level: string; code: string; text: string };
@@ -181,6 +181,26 @@ test("the watch reports a full handover and an agent change from real logs", asy
     `${v} AGENT set to ${BOT.toLowerCase()}`,
   ]);
   assert.notEqual(n, BOT.toLowerCase(), "owner and agent must differ so the lines can't be confused");
+});
+
+test("the status report and headroom() agree on what the ditch still allows", async () => {
+  const status: { statusOf: (url: string, vault: string) => Promise<{ caps: { asset: string; now: bigint; hourLeft: bigint; dayLeft: bigint; hourResets: bigint; dayResets: bigint }[] }> } =
+    await import(new URL("../../aeon/skills/vauban-vault/status.mjs", import.meta.url).href);
+  const { vault, owner } = await deploy(AGENT.address, 21600n);
+  await pub.waitForTransactionReceipt({ hash: await ow.sendTransaction({ to: vault, value: parseEther("1") }) });
+  await owner.allow(router, [toFunctionSelector("buy()")]);
+  await owner.setLimits(NATIVE, { perTx: parseEther("0.1"), perHour: parseEther("0.3"), perDay: parseEther("1") });
+  const agent = new VaubanAgent({ vault, public: pub, wallet: createWalletClient({ chain: foundry, transport, account: AGENT }) });
+  const buy = { target: router, value: parseEther("0.09"), data: toFunctionSelector("buy()") };
+  for (let i = 0; i < 3; i++) await agent.execute(buy);
+
+  const sdk = await headroom(pub, vault);
+  const row = (await status.statusOf(URL_, vault)).caps.find((c) => c.asset === NATIVE)!;
+  assert.equal(sdk.now, parseEther("0.03"), "0.27 spent this hour leaves 0.03");
+  assert.deepEqual(
+    [row.now, row.hourLeft, row.dayLeft, row.hourResets, row.dayResets],
+    [sdk.now, sdk.hourLeft, sdk.dayLeft, BigInt(sdk.hourResets.getTime() / 1000), BigInt(sdk.dayResets.getTime() / 1000)],
+  );
 });
 
 test("the report says CLEAR or how many to check, and refuses a non-vault", async () => {

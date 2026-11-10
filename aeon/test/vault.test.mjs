@@ -75,11 +75,12 @@ test("the report shows caps left and a held move", () => {
     vault: VAULT, chainId: 4663, block: "100", isVauban: true, owner: VAULT, agent: ROUTER,
     frozen: false, revision: "3", gateDelay: "21600", symbols: {},
     allow: [{ target: ROUTER, selectors: [BUY] }],
-    caps: [{ asset: "0x" + "0".repeat(40), decimals: 18, perTx: 10n ** 17n, perHour: 3n * 10n ** 17n, perDay: 10n ** 18n, holdAbove: 5n * 10n ** 16n, hourLeft: 2n * 10n ** 17n, dayLeft: 9n * 10n ** 17n }],
+    caps: [{ asset: "0x" + "0".repeat(40), decimals: 18, perTx: 10n ** 17n, perHour: 3n * 10n ** 17n, perDay: 10n ** 18n, holdAbove: 5n * 10n ** 16n, hourLeft: 2n * 10n ** 17n, dayLeft: 9n * 10n ** 17n, now: 10n ** 17n, hourResets: 1700002800n, dayResets: 1700006400n }],
     held: [{ id: "0x" + "ab".repeat(32), target: ROUTER, value: "8", eta: "1700000000" }],
   });
   assert.match(text, /per tx 0\.1/);
   assert.match(text, /0\.2 left/);
+  assert.match(text, /next move up to 0\.1; hour resets 2023-11-14 23:00 UTC, day resets 2023-11-15 00:00 UTC/);
   assert.match(text, /releasable 2023-11-14/);
   assert.match(text, /not audited/);
 });
