@@ -419,9 +419,36 @@ async function rule() {
     else verdict("HOLD — the vault would queue this at the gate. It lands after the delay, and the owner can cancel it.", "hold");
   } catch (e) {
     try { toRefused(e); } catch (r) {
+      if (r instanceof Refused && r.code.startsWith("DitchPer")) {
+        return verdict(`REFUSED at the ${r.rampart.toUpperCase()} — ${r.reason}. ${await roomHint(getAddress(String(r.args[0])), r.code === "DitchPerTx")}`, "refused");
+      }
       if (r instanceof Refused) return verdict(`REFUSED at the ${r.rampart.toUpperCase()} — ${r.reason}.`, "refused");
       return verdict((r as Error).message.split("\n")[0], "err");
     }
+  }
+}
+
+// For a ditch refusal: the most that would pass now, and when the tighter bucket empties.
+async function roomHint(asset: Address, perTx: boolean): Promise<string> {
+  if (!vault) return "";
+  try {
+    const room = await headroom(pub, vault, asset);
+    let dec = 18, unit = "ETH";
+    if (asset !== NATIVE) {
+      const t = info.get(asset.toLowerCase()) ?? await targetInfo(pub, asset);
+      info.set(asset.toLowerCase(), t);
+      dec = t.decimals;
+      unit = t.symbol ?? short(asset);
+    }
+    const resets = room.hourLeft < room.dayLeft ? room.hourResets : room.dayResets;
+    const at = resets.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+    const most = `Up to ${formatUnitsSafe(room.now, dec)} ${unit} would pass now`;
+    if (perTx) return most + ", in one call.";
+    return room.now > 0n
+      ? `${most}; more room at ${at}.`
+      : `Nothing passes until ${at}.`;
+  } catch {
+    return "";
   }
 }
 
