@@ -3,7 +3,7 @@
 // Asks the vault, with eth_call, how it would rule on one call. Never signs, never sends.
 // Exit: 0 report, 2 VAUBAN_RULE_RPC_DOWN, 3 VAUBAN_RULE_BAD_INPUT, 4 VAUBAN_RULE_NOT_VAUBAN.
 
-import { RPC, CHAIN_ID, ZERO, REFUSAL, SEL, isAddress, word, addrOf, amount, call as post, isVauban, fail } from "./vault.mjs";
+import { RPC, CHAIN_ID, ZERO, REFUSAL, SEL, isAddress, word, addrOf, amount, decodeString, call as post, isVauban, fail } from "./vault.mjs";
 
 const RULE = "9a66303e"; // rule(address,uint256,bytes) -> uint8: 0 pass, 1 hold
 
@@ -30,8 +30,8 @@ export function encodeRule(target, value, data) {
   return "0x" + RULE + pad(target) + pad(BigInt(value).toString(16)) + pad("60") + pad(len.toString(16)) + tail;
 }
 
-/** Revert data -> { rampart, code, args, reason }. Unknown selectors are reported, not guessed. */
-export function decodeRefusal(data) {
+/** Revert data -> { rampart, code, args, reason }. Unknown selectors are reported, not guessed. `unit` scales a token's amounts. */
+export function decodeRefusal(data, unit = null) {
   const sel = (data ?? "").slice(2, 10).toLowerCase();
   const known = ERRORS[sel];
   if (!known) return { rampart: REFUSAL[sel] ?? "call", code: sel ? "0x" + sel : "unknown", args: [], reason: "the call would revert" };
@@ -39,7 +39,7 @@ export function decodeRefusal(data) {
   const raw = "0x" + data.slice(10);
   const args = types.map((t, i) => (t === "address" ? addrOf("0x" + raw.slice(2 + i * 64, 2 + (i + 1) * 64)) : t === "bytes4" ? "0x" + raw.slice(2 + i * 64, 2 + i * 64 + 8) : word(raw, i)));
   const asset = (a) => (a === ZERO ? "ETH" : a);
-  const amt = (a, n) => (a === ZERO ? amount(n, 18) + " ETH" : n.toString());
+  const amt = (a, n) => (a === ZERO ? amount(n, 18) + " ETH" : unit ? `${amount(n, unit.decimals)} ${unit.symbol}` : n.toString());
   const reason = {
     KeepSealed: () => "the owner has frozen the vault",
     CurtainNotListed: () => `${args[0]} selector ${args[1]} is not on the allowlist`,
@@ -61,8 +61,8 @@ export function render(r) {
   else if (r.ruling === "hold") lines.push("**HOLD** - the vault would queue this at the gate. It lands only after the delay, and the owner can cancel it.");
   else lines.push(`**REFUSED** at the ${r.rampart.toUpperCase()} - ${r.reason}.`);
   if (r.room) {
-    const unit = r.room.asset === ZERO ? " ETH" : "";
-    const fmt = (n) => amount(BigInt(n), r.room.asset === ZERO ? 18 : 0) + unit;
+    const eth = r.room.asset === ZERO, tok = r.room.unit;
+    const fmt = (n) => (eth ? amount(BigInt(n), 18) + " ETH" : tok ? `${amount(BigInt(n), tok.decimals)} ${tok.symbol}` : `${n} base units`);
     const most = `Up to ${fmt(r.room.now)} would pass the caps now`;
     const at = new Date(Number(r.room.resets) * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC";
     let hint = r.code === "DitchPerTx" ? `${most}, in one call.` : BigInt(r.room.now) > 0n ? `${most}; more room at ${at}.` : `Nothing passes until ${at}.`;
@@ -80,7 +80,23 @@ async function rawCall(url, body) {
   return JSON.parse(res.body);
 }
 
-/** What the caps still allow for one asset at block `head`; null if any read fails. Token amounts stay in base units. */
+/** A token's symbol and decimals at `head`, or null if it does not report both. */
+async function unitOf(url, token, head) {
+  try {
+    const out = (await rawCall(url, [
+      { jsonrpc: "2.0", id: 0, method: "eth_call", params: [{ to: token, data: "0x" + SEL.symbol }, head] },
+      { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: token, data: "0x" + SEL.decimals }, head] },
+    ])).sort((a, b) => a.id - b.id);
+    if (out.some((r) => r.error || !r.result || r.result === "0x")) return null;
+    const symbol = decodeString(out[0].result);
+    const decimals = Number(word(out[1].result, 0));
+    return symbol && decimals <= 36 ? { symbol, decimals } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** What the caps still allow for one asset at block `head`; null if any read fails. */
 async function roomAt(url, vault, asset, head) {
   const arg = asset.slice(2).toLowerCase().padStart(64, "0");
   try {
@@ -116,9 +132,13 @@ export async function ruleOf(url, vault, to, value, data) {
   const out = await rawCall(url, { jsonrpc: "2.0", id: 3, method: "eth_call", params: [{ to: vault, data: encodeRule(to, value, data) }, head] });
   if (out.error) {
     if (typeof out.error.data !== "string" || !out.error.data.startsWith("0x")) throw new Error(out.error.message ?? "rpc");
-    const refusal = decodeRefusal(out.error.data);
-    const room = refusal.code.startsWith("DitchPer") ? await roomAt(url, vault, refusal.args[0], head) : null;
-    return { ...base, ruling: "refused", ...refusal, ...(room ? { room } : {}) };
+    let refusal = decodeRefusal(out.error.data);
+    if (!refusal.code.startsWith("DitchPer")) return { ...base, ruling: "refused", ...refusal };
+    const asset = refusal.args[0];
+    const unit = asset === ZERO ? null : await unitOf(url, asset, head);
+    if (unit) refusal = decodeRefusal(out.error.data, unit);
+    const room = await roomAt(url, vault, asset, head);
+    return { ...base, ruling: "refused", ...refusal, ...(room ? { room: { ...room, ...(unit ? { unit } : {}) } } : {}) };
   }
   return { ...base, ruling: word(out.result, 0) === 1n ? "hold" : "pass" };
 }

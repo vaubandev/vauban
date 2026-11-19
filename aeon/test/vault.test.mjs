@@ -141,6 +141,13 @@ test("a refusal names its rampart, with ETH caps in ETH", () => {
   assert.match(renderRule({ ...base, code: "DitchPerDay", room: { asset: eth, now: "0", resets: "1700006400" } }), /Nothing passes until 2023-11-15 00:00 UTC\./);
   assert.match(renderRule({ ...base, code: "DitchPerTx", room: { asset: eth, now: "100000000000000000", resets: "1700002800" } }), /Up to 0\.1 ETH would pass the caps now, in one call\./);
   assert.doesNotMatch(renderRule({ ...base, code: "CurtainNotListed", rampart: "curtain" }), /would pass/);
+
+  const tok = "0x" + "ab".repeat(20);
+  const hour = decodeRefusal("0x95d5193f" + pad(BigInt(tok)) + pad(250_500000n) + pad(200_000000n), { symbol: "USDG", decimals: 6 });
+  assert.equal(hour.reason, "this hour would reach 250.5 USDG, over the cap of 200 USDG");
+  assert.match(decodeRefusal("0x95d5193f" + pad(BigInt(tok)) + pad(250_500000n) + pad(200_000000n)).reason, /reach 250500000,/, "no unit known: raw, not guessed");
+  assert.match(renderRule({ ...base, code: "DitchPerHour", room: { asset: tok, now: "49500000", resets: "1700002800", holdAbove: "0", unit: { symbol: "USDG", decimals: 6 } } }), /Up to 49\.5 USDG would pass the caps now/);
+  assert.match(renderRule({ ...base, code: "DitchPerHour", room: { asset: tok, now: "49500000", resets: "1700002800", holdAbove: "0" } }), /Up to 49500000 base units would pass/);
 });
 
 test("the ruling report says pass, hold or refused, and never guesses on a non-vault", () => {

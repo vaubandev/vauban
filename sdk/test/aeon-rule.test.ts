@@ -2,7 +2,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { createPublicClient, createWalletClient, http, parseEther, toFunctionSelector, encodeFunctionData, parseAbi, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -10,7 +10,9 @@ import { foundry } from "viem/chains";
 import { VaubanAgent, VaubanOwner, NATIVE, headroom, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
-type Rule = { ruling: string; rampart?: string; code?: string; reason?: string; isVauban: boolean; room?: { asset: string; now: string; resets: string } };
+type Rule = { ruling: string; rampart?: string; code?: string; reason?: string; isVauban: boolean; room?: { asset: string; now: string; resets: string; unit?: { symbol: string; decimals: number } } };
+const MOCK = new URL("../../contracts/out/Mocks.sol/MockToken.json", import.meta.url);
+const tokenSkip = existsSync(MOCK) ? false : "run `forge build` in contracts/ first";
 type Pack = { ruleOf: (url: string, vault: string, to: string, value: bigint, data: string) => Promise<Rule>; encodeRule: (t: string, v: bigint, d: string) => string };
 const pack: Pack = await import(new URL("../../aeon/skills/vauban-vault/rule.mjs", import.meta.url).href);
 
@@ -87,6 +89,24 @@ test("over the hour cap names the most that passes now, matching headroom()", as
   assert.equal(r.room?.resets, String(h.hourResets.getTime() / 1000));
   // 0.06 clears the caps but is over the 0.05 hold line, so the vault holds it rather than refusing
   assert.equal((await ask(router, h.now, buy)).ruling, "hold");
+});
+
+test("a token over its hour cap is named in the token's own units", { skip: tokenSkip }, async () => {
+  const bc = JSON.parse(readFileSync(MOCK, "utf8")).bytecode.object as Hex;
+  const token = (await pub.waitForTransactionReceipt({ hash: await ow.sendTransaction({ data: bc }) })).contractAddress!;
+  const ERC = parseAbi(["function mint(address,uint256)", "function transfer(address,uint256) returns (bool)"]);
+  await pub.waitForTransactionReceipt({ hash: await ow.writeContract({ address: token, abi: ERC, functionName: "mint", args: [vault, 1_000_000000n] }) });
+  await owner.allow(token, [toFunctionSelector("transfer(address,uint256)")]);
+  await owner.setLimits(token, { perTx: 150_000000n, perHour: 200_000000n, perDay: 1000_000000n });
+  const send = (n: bigint) => encodeFunctionData({ abi: ERC, functionName: "transfer", args: [OWNER.address, n] });
+  await new VaubanAgent({ vault, public: pub, wallet: ag }).execute({ target: token, data: send(150_500000n - 500000n) });
+
+  const r = await ask(token, 0n, send(100_000000n));
+  assert.deepEqual([r.ruling, r.code], ["refused", "DitchPerHour"]);
+  assert.equal(r.reason, "this hour would reach 250 MOCK, over the cap of 200 MOCK");
+  assert.deepEqual(r.room?.unit, { symbol: "MOCK", decimals: 6 });
+  assert.equal(r.room?.now, (await headroom(pub, vault, token)).now.toString());
+  assert.equal(r.room?.now, "50000000");
 });
 
 test("after a freeze everything is refused at the keep", async () => {
