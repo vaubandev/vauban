@@ -134,6 +134,13 @@ test("a refusal names its rampart, with ETH caps in ETH", () => {
   assert.deepEqual([curtain.rampart, curtain.args], ["curtain", [ROUTER, BUY]]);
   assert.equal(decodeRefusal("0x528ac5eb").rampart, "keep");
   assert.equal(decodeRefusal("0xdeadbeef").code, "0xdeadbeef");
+
+  const base = { vault: VAULT, chainId: 4663, block: "1", to: ROUTER, value: "0", selector: BUY, isVauban: true, ruling: "refused", rampart: "ditch", reason: "x" };
+  assert.match(renderRule({ ...base, code: "DitchPerHour", room: { asset: eth, now: "30000000000000000", resets: "1700002800", holdAbove: "50000000000000000" } }), /Up to 0\.03 ETH would pass the caps now; more room at 2023-11-14 23:00 UTC\.$/m);
+  assert.match(renderRule({ ...base, code: "DitchPerHour", room: { asset: eth, now: "60000000000000000", resets: "1700002800", holdAbove: "50000000000000000" } }), /more room at 2023-11-14 23:00 UTC\. Above 0\.05 ETH it waits at the gate first\./);
+  assert.match(renderRule({ ...base, code: "DitchPerDay", room: { asset: eth, now: "0", resets: "1700006400" } }), /Nothing passes until 2023-11-15 00:00 UTC\./);
+  assert.match(renderRule({ ...base, code: "DitchPerTx", room: { asset: eth, now: "100000000000000000", resets: "1700002800" } }), /Up to 0\.1 ETH would pass the caps now, in one call\./);
+  assert.doesNotMatch(renderRule({ ...base, code: "CurtainNotListed", rampart: "curtain" }), /would pass/);
 });
 
 test("the ruling report says pass, hold or refused, and never guesses on a non-vault", () => {

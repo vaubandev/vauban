@@ -3,7 +3,7 @@
 // Asks the vault, with eth_call, how it would rule on one call. Never signs, never sends.
 // Exit: 0 report, 2 VAUBAN_RULE_RPC_DOWN, 3 VAUBAN_RULE_BAD_INPUT, 4 VAUBAN_RULE_NOT_VAUBAN.
 
-import { RPC, CHAIN_ID, ZERO, REFUSAL, isAddress, word, addrOf, amount, call as post, isVauban, fail } from "./vault.mjs";
+import { RPC, CHAIN_ID, ZERO, REFUSAL, SEL, isAddress, word, addrOf, amount, call as post, isVauban, fail } from "./vault.mjs";
 
 const RULE = "9a66303e"; // rule(address,uint256,bytes) -> uint8: 0 pass, 1 hold
 
@@ -60,6 +60,16 @@ export function render(r) {
   if (r.ruling === "pass") lines.push("**PASS** - the vault would let this call land now.");
   else if (r.ruling === "hold") lines.push("**HOLD** - the vault would queue this at the gate. It lands only after the delay, and the owner can cancel it.");
   else lines.push(`**REFUSED** at the ${r.rampart.toUpperCase()} - ${r.reason}.`);
+  if (r.room) {
+    const unit = r.room.asset === ZERO ? " ETH" : "";
+    const fmt = (n) => amount(BigInt(n), r.room.asset === ZERO ? 18 : 0) + unit;
+    const most = `Up to ${fmt(r.room.now)} would pass the caps now`;
+    const at = new Date(Number(r.room.resets) * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+    let hint = r.code === "DitchPerTx" ? `${most}, in one call.` : BigInt(r.room.now) > 0n ? `${most}; more room at ${at}.` : `Nothing passes until ${at}.`;
+    const hold = BigInt(r.room.holdAbove ?? 0);
+    if (hold > 0n && BigInt(r.room.now) > hold) hint += ` Above ${fmt(hold)} it waits at the gate first.`;
+    lines.push("", hint);
+  }
   lines.push("", "A ruling is a dry run at this block. Caps and the sheet can change before the agent sends. The vault is not audited.", "");
   return lines.join("\n");
 }
@@ -68,6 +78,29 @@ async function rawCall(url, body) {
   const res = await post(url, body);
   if ([429, 502, 503, 504].includes(res.status)) throw new Error("rpc busy");
   return JSON.parse(res.body);
+}
+
+/** What the caps still allow for one asset at block `head`; null if any read fails. Token amounts stay in base units. */
+async function roomAt(url, vault, asset, head) {
+  const arg = asset.slice(2).toLowerCase().padStart(64, "0");
+  try {
+    const out = (await rawCall(url, [
+      { jsonrpc: "2.0", id: 0, method: "eth_call", params: [{ to: vault, data: "0x" + SEL.limits + arg }, head] },
+      { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: vault, data: "0x" + SEL.spent + arg }, head] },
+      { jsonrpc: "2.0", id: 2, method: "eth_getBlockByNumber", params: [head, false] },
+    ])).sort((a, b) => a.id - b.id);
+    if (out.some((r) => r.error)) return null;
+    const [l, s, b] = out.map((r) => r.result);
+    const t = BigInt(b.timestamp), h = t / 3600n, d = t / 86400n;
+    const left = (cap, used) => (cap > used ? cap - used : 0n);
+    const hourLeft = left(word(l, 2), word(s, 0) === h ? word(s, 2) : 0n);
+    const dayLeft = left(word(l, 3), word(s, 1) === d ? word(s, 3) : 0n);
+    const now = [word(l, 1), hourLeft, dayLeft].reduce((a, x) => (x < a ? x : a));
+    const resets = hourLeft < dayLeft ? (h + 1n) * 3600n : (d + 1n) * 86400n;
+    return { asset: asset.toLowerCase(), now: now.toString(), hourLeft: hourLeft.toString(), dayLeft: dayLeft.toString(), resets: resets.toString(), holdAbove: word(l, 4).toString() };
+  } catch {
+    return null;
+  }
 }
 
 export async function ruleOf(url, vault, to, value, data) {
@@ -83,7 +116,9 @@ export async function ruleOf(url, vault, to, value, data) {
   const out = await rawCall(url, { jsonrpc: "2.0", id: 3, method: "eth_call", params: [{ to: vault, data: encodeRule(to, value, data) }, head] });
   if (out.error) {
     if (typeof out.error.data !== "string" || !out.error.data.startsWith("0x")) throw new Error(out.error.message ?? "rpc");
-    return { ...base, ruling: "refused", ...decodeRefusal(out.error.data) };
+    const refusal = decodeRefusal(out.error.data);
+    const room = refusal.code.startsWith("DitchPer") ? await roomAt(url, vault, refusal.args[0], head) : null;
+    return { ...base, ruling: "refused", ...refusal, ...(room ? { room } : {}) };
   }
   return { ...base, ruling: word(out.result, 0) === 1n ? "hold" : "pass" };
 }

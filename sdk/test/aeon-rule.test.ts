@@ -7,10 +7,10 @@ import { homedir } from "node:os";
 import { createPublicClient, createWalletClient, http, parseEther, toFunctionSelector, encodeFunctionData, parseAbi, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { VaubanAgent, VaubanOwner, NATIVE, vaubanVaultAbi } from "../src/index.ts";
+import { VaubanAgent, VaubanOwner, NATIVE, headroom, vaubanVaultAbi } from "../src/index.ts";
 import { vaubanVaultBytecode } from "../src/bytecode.ts";
 
-type Rule = { ruling: string; rampart?: string; code?: string; reason?: string; isVauban: boolean };
+type Rule = { ruling: string; rampart?: string; code?: string; reason?: string; isVauban: boolean; room?: { asset: string; now: string; resets: string } };
 type Pack = { ruleOf: (url: string, vault: string, to: string, value: bigint, data: string) => Promise<Rule>; encodeRule: (t: string, v: bigint, d: string) => string };
 const pack: Pack = await import(new URL("../../aeon/skills/vauban-vault/rule.mjs", import.meta.url).href);
 
@@ -72,6 +72,21 @@ test("over the per-tx cap is refused at the ditch, in ETH", async () => {
   const r = await ask(router, parseEther("0.2"), buy);
   assert.deepEqual([r.ruling, r.rampart, r.code], ["refused", "ditch", "DitchPerTx"]);
   assert.equal(r.reason, "0.2 ETH is over the per-tx cap of 0.1 ETH");
+  assert.equal(r.room?.now, parseEther("0.1").toString());
+});
+
+test("over the hour cap names the most that passes now, matching headroom()", async () => {
+  const sdk = new VaubanAgent({ vault, public: pub, wallet: ag });
+  for (let i = 0; i < 6; i++) await sdk.execute({ target: router, value: parseEther("0.04"), data: buy });
+  // 0.24 spent this hour leaves 0.06
+  const r = await ask(router, parseEther("0.07"), buy);
+  assert.deepEqual([r.ruling, r.code], ["refused", "DitchPerHour"]);
+  const h = await headroom(pub, vault);
+  assert.equal(r.room?.now, parseEther("0.06").toString());
+  assert.equal(r.room?.now, h.now.toString());
+  assert.equal(r.room?.resets, String(h.hourResets.getTime() / 1000));
+  // 0.06 clears the caps but is over the 0.05 hold line, so the vault holds it rather than refusing
+  assert.equal((await ask(router, h.now, buy)).ruling, "hold");
 });
 
 test("after a freeze everything is refused at the keep", async () => {

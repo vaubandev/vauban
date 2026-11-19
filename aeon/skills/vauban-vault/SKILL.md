@@ -61,6 +61,7 @@ The helpers use only Node.js, which ships with Aeon. They write nothing except t
    node skills/vauban-vault/rule.mjs VAULT --to TARGET [--value WEI] [--data 0xCALLDATA] > output/vauban-vault.md
    ```
    - The report starts with `PASS`, `HOLD` or `REFUSED at the <RAMPART>` plus the reason, read at the current block. `--json` prints the same as JSON.
+   - A refusal at the DITCH adds what would get through: `Up to X would pass the caps now; more room at <UTC time>`, or `in one call` when the per-tx cap is what refused it. If X is above the hold line, it adds that the move would wait at the gate first. Token amounts are given in base units.
    - Exit `2` (`VAUBAN_RULE_RPC_DOWN`), `3` (`VAUBAN_RULE_BAD_INPUT`: target, value or calldata malformed), `4` (`VAUBAN_RULE_NOT_VAUBAN`: nothing was asked).
    - A ruling is a dry run. It does not reserve the caps, so the agent's real call can still be refused if the sheet or the spend changes first.
 3c. **Inspect the settings** when the prefix is `inspect:`:
