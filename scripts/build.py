@@ -24,7 +24,7 @@ SHELL = """<!doctype html>
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <meta name="theme-color" content="#14150f">
-<meta name="virtual-protocol-site-verification" content="eb9cfa1b7c8ab7db645a6525725fab20" />
+<meta name="virtual-protocol-site-verification" content="1ede2a8b8778ff290004895e36f86ec1" />
 <style>html{{background:#14150f}}</style>
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
