@@ -1,6 +1,7 @@
 // /token/ page: the $VAUBAN facts anyone can check, read straight from Robinhood Chain.
 // No price, no prediction. Every figure links back to the chain it came from.
 import { type Address, createPublicClient, formatUnits, getAddress, http, isAddress, parseAbi } from "viem";
+import { base } from "viem/chains";
 import { robinhoodChain } from "./index.ts";
 import { setShare } from "./share.ts";
 
@@ -16,7 +17,7 @@ const erc20 = parseAbi([
   "event Transfer(address indexed from, address indexed to, uint256 value)",
 ]);
 
-type Token = { live: boolean; ca: string; deployer: string; launchBlock: number; fakes?: { ca: string; where: string; seen: string }[]; links?: { chart?: string } };
+type Token = { live: boolean; chain?: number; ca: string; deployer: string; launchBlock: number; fakes?: { ca: string; where: string; seen: string }[]; links?: { chart?: string } };
 
 const whole = (v: bigint) => Number(formatUnits(v, 18)).toLocaleString("en-US", { maximumFractionDigits: 0 });
 const pct = (part: bigint, of: bigint) => (Number((part * 10_000n) / of) / 100).toFixed(2) + "%";
@@ -36,17 +37,7 @@ async function deployerBurns(ca: Address, deployer: Address, from: bigint) {
   return { n, sum, head };
 }
 
-async function load() {
-  const t: Token = await (await fetch("/token.json?t=" + Date.now(), { cache: "no-store" })).json();
-  if (!t.live || !isAddress(t.ca) || !isAddress(t.deployer) || !Number.isInteger(t.launchBlock)) {
-    set("kStatus", "No token is listed on this site right now.");
-    return;
-  }
-  const ca = getAddress(t.ca), dep = getAddress(t.deployer);
-  set("kCa", ca);
-  set("kDep", dep);
-  ($("kCaLink") as HTMLAnchorElement).href = `https://dexscreener.com/robinhood/${ca}`;
-  if (t.links?.chart && /^https:\/\//.test(t.links.chart)) ($("kChart") as HTMLAnchorElement).href = t.links.chart;
+function renderFakes(t: Token) {
   const list = $("kFakes");
   list.replaceChildren();
   for (const f of t.fakes ?? []) {
@@ -61,6 +52,54 @@ async function load() {
     li.append(a, s);
     list.append(li);
   }
+  if (!list.children.length) ($("kFakeHead").closest("section") as HTMLElement).hidden = true;
+}
+
+// Base launch (Clanker): no creator tax to the deployer, so only supply and burns are shown.
+async function loadBase(t: Token) {
+  const ca = getAddress(t.ca);
+  const pb = createPublicClient({ chain: base, transport: http() });
+  set("kCa", ca);
+  ($("kCaLink") as HTMLAnchorElement).href = `https://dexscreener.com/base/${ca}`;
+  if (t.links?.chart && /^https:\/\//.test(t.links.chart)) ($("kChart") as HTMLAnchorElement).href = t.links.chart;
+  ($("kDep").closest("section") as HTMLElement).hidden = true;
+  ($("kHeld").closest("article") as HTMLElement).hidden = true;
+  renderFakes(t);
+  set("kStatus", "Reading Base…");
+  try {
+    const [supply, dead, head] = await Promise.all([
+      pb.readContract({ address: ca, abi: erc20, functionName: "totalSupply" }),
+      pb.readContract({ address: ca, abi: erc20, functionName: "balanceOf", args: [DEAD] }),
+      pb.getBlockNumber(),
+    ]);
+    const gone = MINTED - supply + dead;
+    set("kMinted", whole(MINTED));
+    set("kSupply", whole(supply));
+    set("kGone", `${whole(gone)}  (${pct(gone, MINTED)})`);
+    const count = (window as unknown as { vaubanCount?: (el: HTMLElement) => void }).vaubanCount;
+    if (count) ["kMinted", "kSupply"].forEach((id) => count($(id)));
+    set("kStatus", `Base · read at block ${head.toLocaleString("en-US")} · ${new Date().toLocaleTimeString()}`);
+    setShare($("kTweet") as HTMLAnchorElement, `Vauban token on Base, one real contract:\n\n${ca}`, "https://vauban.works/token/");
+    $("kStatus").dataset.kind = "ok";
+  } catch (e) {
+    set("kStatus", "Could not read Base right now: " + (e as Error).message.split("\n")[0]);
+    $("kStatus").dataset.kind = "err";
+  }
+}
+
+async function load() {
+  const t: Token = await (await fetch("/token.json?t=" + Date.now(), { cache: "no-store" })).json();
+  if (t.live && isAddress(t.ca) && t.chain === base.id) return loadBase(t);
+  if (!t.live || !isAddress(t.ca) || !isAddress(t.deployer) || !Number.isInteger(t.launchBlock)) {
+    set("kStatus", "No token is listed on this site right now.");
+    return;
+  }
+  const ca = getAddress(t.ca), dep = getAddress(t.deployer);
+  set("kCa", ca);
+  set("kDep", dep);
+  ($("kCaLink") as HTMLAnchorElement).href = `https://dexscreener.com/robinhood/${ca}`;
+  if (t.links?.chart && /^https:\/\//.test(t.links.chart)) ($("kChart") as HTMLAnchorElement).href = t.links.chart;
+  renderFakes(t);
 
   set("kStatus", "Reading Robinhood Chain…");
   try {

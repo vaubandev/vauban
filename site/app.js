@@ -85,7 +85,8 @@ async function loadToken() {
     if (!r.ok) return;
     const t = await r.json();
     if (!t.live || !/^0x[a-fA-F0-9]{40}$/.test(t.ca || "")) return;
-    document.getElementById("caTicker").textContent = "$" + String(t.ticker || "").replace(/[^A-Z0-9]/gi, "");
+    const net = { 8453: "Base", 4663: "Robinhood" }[t.chain];
+    document.getElementById("caTicker").textContent = "$" + String(t.ticker || "").replace(/[^A-Z0-9]/gi, "") + (net ? " · " + net : "");
     document.getElementById("caAddr").textContent = t.ca;
     const buy = document.getElementById("caBuy");
     const chart = t.links && t.links.chart;
