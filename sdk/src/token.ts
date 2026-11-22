@@ -17,7 +17,7 @@ const erc20 = parseAbi([
   "event Transfer(address indexed from, address indexed to, uint256 value)",
 ]);
 
-type Token = { live: boolean; chain?: number; ca: string; deployer: string; launchBlock: number; fakes?: { ca: string; where: string; seen: string }[]; links?: { chart?: string } };
+type Token = { live: boolean; chain?: number | "solana"; ca: string; deployer: string; launchBlock: number; fakes?: { ca: string; where: string; seen: string }[]; links?: { chart?: string } };
 
 const whole = (v: bigint) => Number(formatUnits(v, 18)).toLocaleString("en-US", { maximumFractionDigits: 0 });
 const pct = (part: bigint, of: bigint) => (Number((part * 10_000n) / of) / 100).toFixed(2) + "%";
@@ -87,8 +87,33 @@ async function loadBase(t: Token) {
   }
 }
 
+const isMint = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
+
+// pump.fun launch. Free Solana RPCs refuse browser reads, so the page shows the mint and links out to check it.
+function loadSolana(t: Token) {
+  const ca = t.ca;
+  set("kCa", ca);
+  ($("kCaLink") as HTMLAnchorElement).href = `https://dexscreener.com/solana/${ca}`;
+  ($("kChart") as HTMLAnchorElement).href = t.links?.chart && /^https:\/\//.test(t.links.chart) ? t.links.chart : `https://pump.fun/coin/${ca}`;
+  ($("kDep").closest("section") as HTMLElement).hidden = true;
+  ($("kMinted").closest(".tok-grid") as HTMLElement).hidden = true;
+  renderFakes(t);
+  const status = $("kStatus");
+  status.textContent = "Solana · check the mint on ";
+  const a = document.createElement("a");
+  a.href = `https://solscan.io/token/${ca}`;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.textContent = "Solscan";
+  a.style.textDecoration = "underline";
+  status.append(a, ".");
+  status.dataset.kind = "ok";
+  setShare($("kTweet") as HTMLAnchorElement, `Vauban token on Solana, one real mint:\n\n${ca}`, "https://vauban.works/token/");
+}
+
 async function load() {
   const t: Token = await (await fetch("/token.json?t=" + Date.now(), { cache: "no-store" })).json();
+  if (t.live && t.chain === "solana" && isMint(t.ca)) return loadSolana(t);
   if (t.live && isAddress(t.ca) && t.chain === base.id) return loadBase(t);
   if (!t.live || !isAddress(t.ca) || !isAddress(t.deployer) || !Number.isInteger(t.launchBlock)) {
     set("kStatus", "No token is listed on this site right now.");
