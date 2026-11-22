@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 const SITE = new URL("../../site/", import.meta.url);
 const RPC = "https://api.mainnet-beta.solana.com";
 const TICKER = "VAUBAN";
-const SPL = new Set(["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EpFLC1PSnBkp7Ma2wJNSb"]);
+const SPL = new Set(["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"]);
 
 const argv = process.argv.slice(2);
 const mint = argv.find((a) => !a.startsWith("--")) ?? "";
